@@ -2,7 +2,7 @@
 set -e
 
 GTK_VERSION="4.18.6"
-PANGO_VERSION="1.56.4"
+PANGO_VERSION="1.56.3"
 ADW_VERSION="1.7.12"
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK_DIR="${ROOT_DIR}/gtk-build"
