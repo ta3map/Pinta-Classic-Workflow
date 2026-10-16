@@ -106,6 +106,10 @@ Platform-specific instructions for Windows (MSYS2) and macOS (Homebrew) are the 
 
 The code is licensed under the MIT License, see [`license-mit.txt`](license-mit.txt).
 
+- Copyright (C) 2010 Jonathan Pobst
+- Copyright (C) 2010-2026 [Pinta contributors](https://github.com/PintaProject/Pinta/graphs/contributors)
+- Copyright (C) 2026 [ta3map](https://github.com/ta3map)
+
 Code from Paint.NET 3.36 is used under the MIT License and keeps the original headers on source files. See [`license-pdn.txt`](license-pdn.txt) for Paint.NET's original license.
 
 ### Icons
