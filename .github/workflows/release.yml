@@ -75,7 +75,7 @@ jobs:
     - name: Install Apt Dependencies
       run: |
         sudo apt update
-        sudo apt install gettext
+        sudo apt install gettext libgtk-4-1 libadwaita-1-0
     - uses: actions/download-artifact@v5
       with:
         name: gtk-bundle

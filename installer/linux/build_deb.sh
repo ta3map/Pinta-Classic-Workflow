@@ -22,7 +22,7 @@ dotnet publish "${ROOT_DIR}/Pinta/Pinta.csproj" \
   -p:BuildTranslations=true \
   -p:PublishDir="${PUBLISH_DIR}"
 
-rm -f "${PUBLISH_DIR}"/*.pdb
+rm -f "${PUBLISH_DIR}"/*.pdb "${PUBLISH_DIR}/libcoreclrtraceptprovider.so"
 mv "${PUBLISH_DIR}/icons" "${PUBLISH_DIR}/locale" "${OPT_DIR}/share/"
 cp -a "${ROOT_DIR}/gtk-bundle/lib" "${GTK_DIR}"
 cp -a "${ROOT_DIR}/gtk-bundle/share/glib-2.0" "${OPT_DIR}/share/"
