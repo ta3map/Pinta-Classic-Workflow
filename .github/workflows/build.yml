@@ -3,6 +3,7 @@ name: Build
 on:
   # Build on new commits or pull requests.
   push:
+    branches: ['**']
     paths-ignore:
       - '**.md'
       - '**.po'

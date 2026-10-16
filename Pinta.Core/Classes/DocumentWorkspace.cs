@@ -247,7 +247,8 @@ public sealed class DocumentWorkspace
 		v_adjust.Upper = ViewSize.Height + 2 * v_adjust.PageSize;
 
 		h_adjust.Value = canvas_point.X * Scale + h_adjust.PageSize - visible_point.X;
-		v_adjust.Value = canvas_point.Y * Scale + v_adjust.PageSize - visible_point.Y;	}
+		v_adjust.Value = canvas_point.Y * Scale + v_adjust.PageSize - visible_point.Y;
+	}
 
 	public void ScrollCanvas (PointI delta)
 	{
@@ -316,7 +317,6 @@ public sealed class DocumentWorkspace
 	{
 		ZoomOutAroundVisiblePoint (CanvasPointToVisible (canvas_point));
 	}
-
 
 	public void ZoomManually ()
 	{
