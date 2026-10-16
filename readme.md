@@ -4,6 +4,9 @@
 
 [![Download Flatpak](https://img.shields.io/badge/Download-Flatpak-4A90D9?style=for-the-badge&logo=flatpak&logoColor=white)](https://github.com/ta3map/Pinta-Classic-Workflow/releases/latest/download/PintaClassicWorkflow.flatpak)
 [![Download .deb](https://img.shields.io/badge/Download-.deb-A81D33?style=for-the-badge&logo=debian&logoColor=white)](https://github.com/ta3map/Pinta-Classic-Workflow/releases/latest)
+[![Download AppImage](https://img.shields.io/badge/Download-AppImage-1E9BD7?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/ta3map/Pinta-Classic-Workflow/releases/latest)
+[![Download for Windows x64](https://img.shields.io/badge/Windows-x64-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ta3map/Pinta-Classic-Workflow/releases/latest/download/PintaClassicWorkflow-win-x64-Setup.exe)
+[![Download for Windows ARM64](https://img.shields.io/badge/Windows-ARM64-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ta3map/Pinta-Classic-Workflow/releases/latest/download/PintaClassicWorkflow-win-arm64-Setup.exe)
 [![Latest release](https://img.shields.io/github/v/release/ta3map/Pinta-Classic-Workflow?style=for-the-badge)](https://github.com/ta3map/Pinta-Classic-Workflow/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](license-mit.txt)
 
