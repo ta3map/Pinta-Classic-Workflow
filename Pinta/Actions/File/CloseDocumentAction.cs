@@ -75,6 +75,7 @@ internal sealed class CloseDocumentAction : IActionHandler
 		string body = Translations.GetString ("If you don't save, all changes will be permanently lost.");
 
 		Adw.MessageDialog dialog = Adw.MessageDialog.New (chrome.MainWindow, heading, body);
+		dialog.ExtraChild = CreatePreview (workspace.ActiveDocument);
 
 		const string cancel_response = "cancel";
 		const string discard_response = "discard";
@@ -106,4 +107,24 @@ internal sealed class CloseDocumentAction : IActionHandler
 		}
 
 	}
+
+	private static Gtk.Picture CreatePreview (Document document)
+	{
+		using Cairo.ImageSurface flattened = document.GetFlattenedImage ();
+		flattened.Flush ();
+
+		Gdk.MemoryTexture texture = Gdk.MemoryTexture.New (
+			flattened.Width,
+			flattened.Height,
+			Gdk.MemoryFormat.B8g8r8a8Premultiplied,
+			GLib.Bytes.New (flattened.GetData ()),
+			(nuint) flattened.Stride);
+
+		Gtk.Picture picture = Gtk.Picture.NewForPaintable (texture);
+		picture.ContentFit = Gtk.ContentFit.Contain;
+		picture.SetSizeRequest (PREVIEW_SIZE, PREVIEW_SIZE);
+		return picture;
+	}
+
+	private const int PREVIEW_SIZE = 256;
 }

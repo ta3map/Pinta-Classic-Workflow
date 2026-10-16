@@ -11,7 +11,7 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 {
 	private const int THUMBNAIL_SIZE = 28;
 
-	private sealed record Thumbnail (Gtk.ToggleButton Button, Gtk.Picture Picture, Gtk.Label DirtyMark);
+	private sealed record Thumbnail (Gtk.Overlay Root, Gtk.ToggleButton Button, Gtk.Picture Picture, Gtk.Label DirtyMark);
 
 	private readonly WorkspaceManager workspace;
 	private readonly Dictionary<Document, Thumbnail> thumbnails = [];
@@ -36,15 +36,7 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 		};
 		picture.SetSizeRequest (THUMBNAIL_SIZE, THUMBNAIL_SIZE);
 
-		Gtk.Label dirtyMark = Gtk.Label.New ("*");
-		dirtyMark.Halign = Gtk.Align.End;
-		dirtyMark.Valign = Gtk.Align.Start;
-		dirtyMark.AddCssClass ("thumbnail-dirty-mark");
-
-		Gtk.Overlay overlay = new () { Child = picture };
-		overlay.AddOverlay (dirtyMark);
-
-		Gtk.ToggleButton button = new () { Child = overlay };
+		Gtk.ToggleButton button = new () { Child = picture };
 		button.AddCssClass (AdwaitaStyles.Flat);
 		button.AddCssClass ("thumbnail-button");
 		button.OnClicked += (_, _) => {
@@ -52,14 +44,34 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 			UpdateActive ();
 		};
 
+		Gtk.Label dirtyMark = Gtk.Label.New ("*");
+		dirtyMark.Halign = Gtk.Align.Start;
+		dirtyMark.Valign = Gtk.Align.Start;
+		dirtyMark.CanTarget = false;
+		dirtyMark.AddCssClass ("thumbnail-dirty-mark");
+
+		Gtk.Button closeButton = Gtk.Button.NewFromIconName (Resources.StandardIcons.WindowClose);
+		closeButton.Halign = Gtk.Align.End;
+		closeButton.Valign = Gtk.Align.Start;
+		closeButton.TooltipText = Translations.GetString ("Close");
+		closeButton.AddCssClass ("thumbnail-close");
+		closeButton.OnClicked += (_, _) => {
+			workspace.SetActiveDocument (workspace.OpenDocuments.IndexOf (doc));
+			PintaCore.Actions.File.Close.Activate ();
+		};
+
+		Gtk.Overlay overlay = new () { Child = button };
+		overlay.AddOverlay (dirtyMark);
+		overlay.AddOverlay (closeButton);
+
 		doc.History.HistoryItemAdded += (_, _) => UpdateThumbnail (doc);
 		doc.History.ActionUndone += (_, _) => UpdateThumbnail (doc);
 		doc.History.ActionRedone += (_, _) => UpdateThumbnail (doc);
 		doc.IsDirtyChanged += (_, _) => UpdateDirtyState (doc);
 		doc.Renamed += (_, _) => UpdateDirtyState (doc);
 
-		thumbnails[doc] = new Thumbnail (button, picture, dirtyMark);
-		Append (button);
+		thumbnails[doc] = new Thumbnail (overlay, button, picture, dirtyMark);
+		Append (overlay);
 
 		UpdateThumbnail (doc);
 		UpdateDirtyState (doc);
@@ -68,7 +80,7 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 
 	private void RemoveDocument (Document doc)
 	{
-		Remove (thumbnails[doc].Button);
+		Remove (thumbnails[doc].Root);
 		thumbnails.Remove (doc);
 	}
 

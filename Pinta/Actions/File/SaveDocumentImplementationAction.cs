@@ -138,19 +138,18 @@ internal sealed class SaveDocumentImplmentationAction : IActionHandler
 
 			Gio.File file = fcd.GetFile ()!;
 
+			// A file type picked in the drop down wins over the extension, which is then replaced.
+			// Otherwise follow the extension, ie: if the user saves a "jpeg" as "foo.png", they want png.
+			FormatDescriptor? chosen = fcd.Filter is null ? null : filetypes.GetValueOrDefault (fcd.Filter);
+			if (chosen is not null && chosen != format_desc) {
+				string baseName = System.IO.Path.GetFileNameWithoutExtension (file.GetBasename ()!);
+				file = file.GetParent ()!.GetChild ($"{baseName}.{chosen.Extensions.First ()}");
+			}
+
 			// Note that we can't use file.GetDisplayName() because the file doesn't exist.
 			string displayName = file.GetParent ()!.GetRelativePath (file)!;
 
-			// Always follow the extension rather than the file type drop down
-			// ie: if the user chooses to save a "jpeg" as "foo.png", we are going
-			// to assume they just didn't update the dropdown and really want png
-			FormatDescriptor? format = image_formats.GetFormatByFile (displayName);
-			if (format is null) {
-				if (fcd.Filter is not null)
-					format = filetypes[fcd.Filter];
-				else // Somehow, no file filter was selected...
-					format = image_formats.GetDefaultSaveFormat ();
-			}
+			FormatDescriptor format = image_formats.GetFormatByFile (displayName) ?? chosen ?? image_formats.GetDefaultSaveFormat ();
 
 			if (!await ConfirmFlatten (document, format)) {
 				continue;

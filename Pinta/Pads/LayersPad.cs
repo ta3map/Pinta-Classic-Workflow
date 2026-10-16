@@ -23,6 +23,7 @@ internal static class LayersPad
 			layerActions.MergeLayerDown.CreateDockToolBarItem (),
 			layerActions.MoveLayerUp.CreateDockToolBarItem (),
 			layerActions.MoveLayerDown.CreateDockToolBarItem (),
+			layerActions.Properties.CreateDockToolBarItem (),
 		]);
 
 		return pad;

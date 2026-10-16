@@ -19,6 +19,9 @@ public sealed class SettingsDialog : Gtk.Dialog
 	private readonly Gtk.SpinButton pixel_grid_zoom;
 	private readonly Gtk.SpinButton pad_opacity;
 	private readonly Gtk.CheckButton reset_layout;
+	private readonly Gtk.Stack pages = new () { Hexpand = true };
+	private readonly Gtk.Box sidebar = Gtk.Box.New (Gtk.Orientation.Vertical, SPACING);
+	private Gtk.ToggleButton? first_tab;
 
 	internal SettingsDialog (ChromeManager chrome, Values initial)
 	{
@@ -42,35 +45,38 @@ public sealed class SettingsDialog : Gtk.Dialog
 		pad_opacity = CreateSpinButton (10, 100, 5, initial.PadOpacity);
 		reset_layout = Gtk.CheckButton.NewWithLabel (Translations.GetString ("Reset the position and size of the Tools, History, Layers and Colors windows"));
 
-		Gtk.Grid grid = new () {
-			RowSpacing = SPACING,
-			ColumnSpacing = SPACING * 2,
-		};
-
-		int row = 0;
-		AddHeader (grid, ref row, Translations.GetString ("Appearance"));
+		Gtk.Grid grid = AddPage (Translations.GetString ("Appearance"), Resources.StandardIcons.ViewReveal, out int row);
 		AddRow (grid, ref row, Translations.GetString ("Theme:"), theme, null);
 		AddRow (grid, ref row, Translations.GetString ("Ruler units:"), ruler_units, null);
 		AddRow (grid, ref row, Translations.GetString ("Show pixel grid from zoom:"), pixel_grid_zoom, "%");
 		AddRow (grid, ref row, Translations.GetString ("Inactive window opacity:"), pad_opacity, "%");
 		grid.Attach (reset_layout, 0, row++, 3, 1);
 
-		AddHeader (grid, ref row, Translations.GetString ("New Image"));
+		grid = AddPage (Translations.GetString ("New Image"), Resources.StandardIcons.DocumentNew, out row);
 		AddRow (grid, ref row, Translations.GetString ("Width:"), image_width, Translations.GetString ("pixels"));
 		AddRow (grid, ref row, Translations.GetString ("Height:"), image_height, Translations.GetString ("pixels"));
 		AddRow (grid, ref row, Translations.GetString ("Background:"), image_background, null);
 
-		AddHeader (grid, ref row, Translations.GetString ("Brush"));
+		grid = AddPage (Translations.GetString ("Brush"), Resources.Icons.ToolPaintBrush, out row);
 		AddRow (grid, ref row, Translations.GetString ("Brush width:"), brush_width, Translations.GetString ("pixels"));
 		AddRow (grid, ref row, Translations.GetString ("Hardness:"), brush_hardness, "%");
 
+		grid = AddPage (Translations.GetString ("Add-ins"), Resources.Icons.AddinsManage, out row);
+		AddCommands (grid, ref row, PintaCore.Actions.Addins.AddinManager);
+
+		Gtk.Box layout = Gtk.Box.New (Gtk.Orientation.Horizontal, SPACING * 2);
+		layout.Append (sidebar);
+		layout.Append (Gtk.Separator.New (Gtk.Orientation.Vertical));
+		layout.Append (pages);
+
 		Gtk.Box contentArea = this.GetContentAreaBox ();
 		contentArea.SetAllMargins (12);
-		contentArea.Append (grid);
+		contentArea.Append (layout);
 
 		Title = Translations.GetString ("Settings");
 		TransientFor = chrome.MainWindow;
 		Modal = true;
+		Resizable = false;
 		IconName = Resources.StandardIcons.Preferences;
 
 		this.AddCancelOkButtons ();
@@ -104,13 +110,56 @@ public sealed class SettingsDialog : Gtk.Dialog
 		return spin;
 	}
 
-	private static void AddHeader (Gtk.Grid grid, ref int row, string text)
+	private Gtk.Grid AddPage (string title, string iconName, out int row)
 	{
-		Gtk.Label label = Gtk.Label.New (text);
-		label.Halign = Gtk.Align.Start;
-		label.AddCssClass (AdwaitaStyles.Title4);
-		label.MarginTop = row == 0 ? 0 : SPACING * 2;
-		grid.Attach (label, 0, row++, 3, 1);
+		Gtk.Grid grid = new () {
+			RowSpacing = SPACING,
+			ColumnSpacing = SPACING * 2,
+		};
+
+		Gtk.Label header = Gtk.Label.New (title);
+		header.Halign = Gtk.Align.Start;
+		header.AddCssClass (AdwaitaStyles.Title4);
+		grid.Attach (header, 0, 0, 3, 1);
+		row = 1;
+
+		pages.AddChild (grid);
+
+		Gtk.ToggleButton tab = new () {
+			Child = new Adw.ButtonContent { IconName = iconName, Label = title, Halign = Gtk.Align.Start },
+			Group = first_tab,
+			Active = first_tab is null,
+		};
+		tab.AddCssClass (AdwaitaStyles.Flat);
+		tab.OnClicked += (_, _) => pages.VisibleChild = grid;
+		sidebar.Append (tab);
+		first_tab ??= tab;
+
+		return grid;
+	}
+
+	private void AddCommands (Gtk.Grid grid, ref int row, params Command[] commands)
+	{
+		Gtk.FlowBox box = new () {
+			SelectionMode = Gtk.SelectionMode.None,
+			MaxChildrenPerLine = 3,
+			RowSpacing = SPACING,
+			ColumnSpacing = SPACING,
+		};
+
+		foreach (Command command in commands) {
+			Gtk.Button button = new () {
+				Child = new Adw.ButtonContent { IconName = command.IconName ?? string.Empty, Label = command.Label },
+				Sensitive = command.Sensitive,
+			};
+			button.OnClicked += (_, _) => {
+				Response ((int) Gtk.ResponseType.Cancel);
+				command.Activate ();
+			};
+			box.Append (button);
+		}
+
+		grid.Attach (box, 0, row++, 3, 1);
 	}
 
 	private static void AddRow (Gtk.Grid grid, ref int row, string text, Gtk.Widget widget, string? units)

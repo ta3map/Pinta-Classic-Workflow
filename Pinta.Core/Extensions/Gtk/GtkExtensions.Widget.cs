@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Pinta.Resources;
 
@@ -102,6 +103,24 @@ partial class GtkExtensions
 	/// <summary>
 	/// Remove all child widgets from a box.
 	/// </summary>
+	/// <summary>
+	/// GTK hides the icon of a menu item that has a label, so reveal the icons of an opened popover menu.
+	/// </summary>
+	public static void ShowMenuIcons (this Gtk.Widget popover)
+	{
+		foreach (Gtk.Image image in popover.GetDescendants ().OfType<Gtk.Image> ())
+			image.Visible = true;
+	}
+
+	public static IEnumerable<Gtk.Widget> GetDescendants (this Gtk.Widget widget)
+	{
+		for (Gtk.Widget? child = widget.GetFirstChild (); child is not null; child = child.GetNextSibling ()) {
+			yield return child;
+			foreach (Gtk.Widget descendant in child.GetDescendants ())
+				yield return descendant;
+		}
+	}
+
 	public static void RemoveAll (this Gtk.Box box)
 	{
 		while (box.GetFirstChild () is Gtk.Widget child)

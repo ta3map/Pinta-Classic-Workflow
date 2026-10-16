@@ -48,7 +48,9 @@ public sealed class MoveSelectedTool : BaseTransformTool
 	public override string StatusBarText => Translations.GetString (
 		"Left click and drag the selection to move selected content." +
 		"\nHold {0} to scale instead of move." +
+		"\nDrag the handles on the frame to resize, hold Shift to keep proportions." +
 		"\nRight click and drag the selection to rotate selected content." +
+		"\nLeft click and drag just outside the selection to rotate selected content." +
 		"\nHold Shift to rotate in steps." +
 		"\nUse arrow keys to move selected content by a single pixel.",
 		system_manager.CtrlLabel ());

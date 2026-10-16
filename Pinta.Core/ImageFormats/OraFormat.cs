@@ -260,6 +260,10 @@ public sealed class OraFormat : IImageImporter, IImageExporter
 			BlendMode.Luminosity => "svg:luminosity",
 			BlendMode.Hue => "svg:hue",
 			BlendMode.Saturation => "svg:saturation",
+			BlendMode.Additive => "pinta:additive",
+			BlendMode.Reflect => "pinta:reflect",
+			BlendMode.Glow => "pinta:glow",
+			BlendMode.Negation => "pinta:negation",
 			_ => "svg:src-over",
 		};
 
@@ -298,6 +302,14 @@ public sealed class OraFormat : IImageImporter, IImageExporter
 				return BlendMode.Hue;
 			case "svg:saturation":
 				return BlendMode.Saturation;
+			case "pinta:additive":
+				return BlendMode.Additive;
+			case "pinta:reflect":
+				return BlendMode.Reflect;
+			case "pinta:glow":
+				return BlendMode.Glow;
+			case "pinta:negation":
+				return BlendMode.Negation;
 			default:
 				Console.WriteLine ("Unrecognized composite-op: {0}, using Normal.", mode);
 				return BlendMode.Normal;

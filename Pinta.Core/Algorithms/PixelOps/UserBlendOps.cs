@@ -44,6 +44,10 @@ public sealed partial class UserBlendOps
 			[Translations.GetString ("Luminosity")] = BlendMode.Luminosity,
 			[Translations.GetString ("Hue")] = BlendMode.Hue,
 			[Translations.GetString ("Saturation")] = BlendMode.Saturation,
+			[Translations.GetString ("Additive")] = BlendMode.Additive,
+			[Translations.GetString ("Reflect")] = BlendMode.Reflect,
+			[Translations.GetString ("Glow")] = BlendMode.Glow,
+			[Translations.GetString ("Negation")] = BlendMode.Negation,
 		};
 	}
 

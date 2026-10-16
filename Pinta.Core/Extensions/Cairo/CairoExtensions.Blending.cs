@@ -31,6 +31,8 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Cairo;
 
 namespace Pinta.Core;
@@ -45,9 +47,8 @@ partial class CairoExtensions
 	{
 		g.Save ();
 
-		g.SetBlendMode (mode);
 		g.SetSourceSurface (src, 0, 0);
-		g.PaintWithAlpha (opacity);
+		g.PaintWithBlendMode (mode, opacity);
 
 		g.Restore ();
 	}
@@ -63,9 +64,8 @@ partial class CairoExtensions
 
 		g.Rectangle (roi);
 		g.Clip ();
-		g.SetBlendMode (mode);
 		g.SetSourceSurface (src, 0, 0);
-		g.PaintWithAlpha (opacity);
+		g.PaintWithBlendMode (mode, opacity);
 
 		g.Restore ();
 	}
@@ -79,11 +79,110 @@ partial class CairoExtensions
 		g.Save ();
 
 		g.Translate (offset.X, offset.Y);
-		g.SetBlendMode (mode);
 		g.SetSourceSurface (src, 0, 0);
-		g.PaintWithAlpha (opacity);
+		g.PaintWithBlendMode (mode, opacity);
 
 		g.Restore ();
+	}
+
+	/// <summary>
+	/// Paints the current source with the given blend mode and opacity.
+	/// Blend modes that Cairo has no operator for are computed per pixel, so the target must be an image surface.
+	/// </summary>
+	public static void PaintWithBlendMode (
+		this Context g,
+		BlendMode mode,
+		double opacity)
+	{
+		if (pixel_blend_ops.TryGetValue (mode, out Func<int, int, int>? op)) {
+			PaintWithPixelBlend (g, op, opacity);
+			return;
+		}
+
+		g.SetBlendMode (mode);
+		g.PaintWithAlpha (opacity);
+	}
+
+	// Paint.NET blend functions of the straight bottom (b) and top (a) channel values.
+	private static readonly Dictionary<BlendMode, Func<int, int, int>> pixel_blend_ops = new () {
+		[BlendMode.Additive] = (b, a) => Math.Min (255, b + a),
+		[BlendMode.Reflect] = (b, a) => a == 255 ? 255 : Math.Min (255, b * b / (255 - a)),
+		[BlendMode.Glow] = (b, a) => b == 255 ? 255 : Math.Min (255, a * a / (255 - b)),
+		[BlendMode.Negation] = (b, a) => 255 - Math.Abs (255 - b - a),
+	};
+
+	private static unsafe void PaintWithPixelBlend (Context g, Func<int, int, int> op, double opacity)
+	{
+		Surface target = g.GetTarget ();
+		target.Flush ();
+
+		int width = ImageSurfaceGetWidth (target.Handle);
+		int height = ImageSurfaceGetHeight (target.Handle);
+		int stride = ImageSurfaceGetStride (target.Handle) / 4;
+		Span<ColorBgra> dst = new ((void*) ImageSurfaceGetData (target.Handle), stride * height);
+
+		RectangleI bounds = GetDeviceClipBounds (g).Intersect (new RectangleI (0, 0, width, height));
+
+		using ImageSurface top = CreateImageSurface (Format.Argb32, bounds.Width, bounds.Height);
+		using (Context t = new (top)) {
+			Matrix matrix = CreateIdentityMatrix ();
+			g.GetMatrix (matrix);
+			t.Translate (-bounds.X, -bounds.Y);
+			t.Transform (matrix);
+			t.SetSource (g.GetSource ());
+			t.PaintWithAlpha (opacity);
+		}
+
+		ReadOnlySpan<ColorBgra> src = top.GetReadOnlyPixelData ();
+		for (int y = 0; y < bounds.Height; y++) {
+			for (int x = 0; x < bounds.Width; x++) {
+				ref ColorBgra d = ref dst[(bounds.Y + y) * stride + bounds.X + x];
+				d = PixelBlend (d, src[y * bounds.Width + x], op);
+			}
+		}
+
+		target.MarkDirty ();
+	}
+
+	private static RectangleI GetDeviceClipBounds (Context g)
+	{
+		g.ClipExtents (out double x1, out double y1, out double x2, out double y2);
+		PointD[] corners = [new (x1, y1), new (x2, y1), new (x1, y2), new (x2, y2)];
+		for (int i = 0; i < corners.Length; i++) {
+			double x = corners[i].X;
+			double y = corners[i].Y;
+			g.UserToDevice (ref x, ref y);
+			corners[i] = new (x, y);
+		}
+
+		int left = (int) Math.Floor (corners.Min (p => p.X));
+		int top = (int) Math.Floor (corners.Min (p => p.Y));
+		int right = (int) Math.Ceiling (corners.Max (p => p.X));
+		int bottom = (int) Math.Ceiling (corners.Max (p => p.Y));
+		return new (left, top, right - left, bottom - top);
+	}
+
+	/// <summary>
+	/// Composites premultiplied top over bottom, using the blend function where both are opaque.
+	/// </summary>
+	private static ColorBgra PixelBlend (ColorBgra bottom, ColorBgra top, Func<int, int, int> op)
+	{
+		int sa = top.A;
+		int ba = bottom.A;
+
+		return sa == 0
+			? bottom
+			: ColorBgra.FromBgra (
+				BlendChannel (bottom.B, top.B, ba, sa, op),
+				BlendChannel (bottom.G, top.G, ba, sa, op),
+				BlendChannel (bottom.R, top.R, ba, sa, op),
+				(byte) (sa + ba - sa * ba / 255));
+	}
+
+	private static byte BlendChannel (int bc, int sc, int ba, int sa, Func<int, int, int> op)
+	{
+		int f = op (Math.Min (255, bc * 255 / Math.Max (ba, 1)), Math.Min (255, sc * 255 / sa));
+		return (byte) ((sc * (255 - ba) * 255 + bc * (255 - sa) * 255 + sa * ba * f) / 65025);
 	}
 
 	public static void SetBlendMode (

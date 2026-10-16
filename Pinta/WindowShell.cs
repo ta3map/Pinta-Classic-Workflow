@@ -69,22 +69,10 @@ public sealed class WindowShell
 	{
 		Gtk.PopoverMenuBar menuBar = Gtk.PopoverMenuBar.NewFromModel (model);
 
-		foreach (Gtk.PopoverMenu popover in GetDescendants (menuBar).OfType<Gtk.PopoverMenu> ())
-			popover.OnShow += (_, _) => {
-				foreach (Gtk.Image image in GetDescendants (popover).OfType<Gtk.Image> ())
-					image.Visible = true;
-			};
+		foreach (Gtk.PopoverMenu popover in menuBar.GetDescendants ().OfType<Gtk.PopoverMenu> ())
+			popover.OnShow += (_, _) => popover.ShowMenuIcons ();
 
 		return menuBar;
-	}
-
-	private static IEnumerable<Gtk.Widget> GetDescendants (Gtk.Widget widget)
-	{
-		for (Gtk.Widget? child = widget.GetFirstChild (); child is not null; child = child.GetNextSibling ()) {
-			yield return child;
-			foreach (Gtk.Widget descendant in GetDescendants (child))
-				yield return descendant;
-		}
 	}
 
 	public Gtk.ApplicationWindow Window => app_window;

@@ -49,7 +49,9 @@ public sealed class MoveSelectionTool : BaseTransformTool
 	public override string StatusBarText => Translations.GetString (
 		"Left click and drag the selection to move selection outline." +
 		"\nHold {0} to scale instead of move." +
+		"\nDrag the handles on the frame to resize, hold Shift to keep proportions." +
 		"\nRight click and drag the selection to rotate selection outline." +
+		"\nLeft click and drag just outside the selection to rotate selection outline." +
 		"\nHold Shift to rotate in steps." +
 		"\nUse arrow keys to move selection outline by a single pixel.",
 		system_manager.CtrlLabel ());

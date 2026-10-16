@@ -43,5 +43,9 @@ public enum BlendMode
 	Color,
 	Luminosity,
 	Hue,
-	Saturation
+	Saturation,
+	Additive,
+	Reflect,
+	Glow,
+	Negation
 }

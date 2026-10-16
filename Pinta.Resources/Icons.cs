@@ -116,6 +116,12 @@ public static class Icons
 	public const string EditSelectionOffset = "edit-selection-offset";
 	public const string EditSelectionNone = "edit-selection-none";
 
+	public const string SelectionReplace = "selection-replace-symbolic";
+	public const string SelectionUnion = "selection-union-symbolic";
+	public const string SelectionExclude = "selection-exclude-symbolic";
+	public const string SelectionXor = "selection-xor-symbolic";
+	public const string SelectionIntersect = "selection-intersect-symbolic";
+
 	public const string EffectsAlignObject = "tool-move";
 	public const string EffectsArtisticInkSketch = "effects-artistic-inksketch";
 	public const string EffectsArtisticOilPainting = "effects-artistic-oilpainting";

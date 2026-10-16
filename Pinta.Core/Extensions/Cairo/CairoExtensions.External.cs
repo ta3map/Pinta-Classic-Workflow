@@ -64,4 +64,16 @@ partial class CairoExtensions
 
 	[LibraryImport (CAIRO_LIBRARY_NAME, EntryPoint = "cairo_region_get_rectangle")]
 	private static partial int RegionGetRectangle (Cairo.Internal.RegionHandle handle, int i, out CairoRectangleInt rect);
+
+	[LibraryImport (CAIRO_LIBRARY_NAME, EntryPoint = "cairo_image_surface_get_data")]
+	private static partial nint ImageSurfaceGetData (Cairo.Internal.SurfaceHandle handle);
+
+	[LibraryImport (CAIRO_LIBRARY_NAME, EntryPoint = "cairo_image_surface_get_width")]
+	private static partial int ImageSurfaceGetWidth (Cairo.Internal.SurfaceHandle handle);
+
+	[LibraryImport (CAIRO_LIBRARY_NAME, EntryPoint = "cairo_image_surface_get_height")]
+	private static partial int ImageSurfaceGetHeight (Cairo.Internal.SurfaceHandle handle);
+
+	[LibraryImport (CAIRO_LIBRARY_NAME, EntryPoint = "cairo_image_surface_get_stride")]
+	private static partial int ImageSurfaceGetStride (Cairo.Internal.SurfaceHandle handle);
 }

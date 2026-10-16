@@ -40,7 +40,6 @@ public sealed class ActionManager
 	public HelpActions Help { get; }
 	public AddinActions Addins { get; }
 
-	private readonly SystemManager system;
 	private readonly ChromeManager chrome;
 	public ActionManager (
 		ChromeManager chrome,
@@ -83,7 +82,6 @@ public sealed class ActionManager
 		Help = help;
 		Addins = addins;
 
-		this.system = system;
 		this.chrome = chrome;
 	}
 
@@ -98,59 +96,66 @@ public sealed class ActionManager
 #endif
 		toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
 
-		// Cut/Copy/Paste comes before Undo/Redo on Windows
-		if (system.OperatingSystem == OS.Windows) {
-			toolbar.Append (Edit.Cut.CreateToolBarItem ());
-			toolbar.Append (Edit.Copy.CreateToolBarItem ());
-			toolbar.Append (Edit.Paste.CreateToolBarItem ());
-			toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
-			toolbar.Append (Edit.Undo.CreateToolBarItem ());
-			toolbar.Append (Edit.Redo.CreateToolBarItem ());
-		} else {
-			toolbar.Append (Edit.Undo.CreateToolBarItem ());
-			toolbar.Append (Edit.Redo.CreateToolBarItem ());
-			toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
-			toolbar.Append (Edit.Cut.CreateToolBarItem ());
-			toolbar.Append (Edit.Copy.CreateToolBarItem ());
-			toolbar.Append (Edit.Paste.CreateToolBarItem ());
-		}
+		toolbar.Append (Edit.Cut.CreateToolBarItem ());
+		toolbar.Append (Edit.Copy.CreateToolBarItem ());
+		toolbar.Append (Edit.Paste.CreateToolBarItem ());
 
 		toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
 		toolbar.Append (Image.CropToSelection.CreateToolBarItem ());
 		toolbar.Append (Edit.Deselect.CreateToolBarItem ());
+
+		toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
+		toolbar.Append (Edit.Undo.CreateToolBarItem ());
+		toolbar.Append (Edit.Redo.CreateToolBarItem ());
 	}
 
 	public void CreateStatusBar (Gtk.Box statusbar, WorkspaceManager workspaceManager)
 	{
-		// Cursor position widget - left aligned with enough space to display coordinates up to tens of thousands (e.g. 10000, 10000).
+		statusbar.Append (new Gtk.Box { Hexpand = true });
+
+		Gtk.Label selection_location = CreateStatusBarLabel (statusbar, 30);
+		Gtk.Label selection_size = CreateStatusBarLabel (statusbar, 34);
+		statusbar.Append (Gtk.Image.NewFromIconName (Resources.Icons.ImageResizeCanvas));
+		Gtk.Label canvas_size = CreateStatusBarLabel (statusbar, 13);
 		statusbar.Append (Gtk.Image.NewFromIconName (Resources.Icons.CursorPosition));
-		var cursor = Gtk.Label.New ("0, 0");
-		cursor.Xalign = 0.0f;
-		cursor.Halign = Gtk.Align.Start;
-		cursor.WidthChars = 11;
-		statusbar.Append (cursor);
+		Gtk.Label cursor = CreateStatusBarLabel (statusbar, 11);
+
+		void UpdateSelection ()
+		{
+			RectangleD bounds = workspaceManager.HasOpenDocuments ? workspaceManager.ActiveDocument.Selection.GetBounds () : new RectangleD ();
+			selection_location.SetText (Translations.GetString ("Selection top left: ({0}, {1})", bounds.X, bounds.Y));
+			selection_size.SetText (Translations.GetString ("Bounding rectangle size: ({0}, {1})", bounds.Width, bounds.Height));
+		}
+
+		void UpdateCanvasSize ()
+		{
+			Size size = workspaceManager.HasOpenDocuments ? workspaceManager.ImageSize : Size.Empty;
+			canvas_size.SetText ($"{size.Width} × {size.Height}");
+		}
+
+		UpdateSelection ();
+		UpdateCanvasSize ();
+		cursor.SetText ("0, 0");
+
+		workspaceManager.SelectionChanged += (_, _) => UpdateSelection ();
+		workspaceManager.ActiveDocumentChanged += (_, _) => UpdateCanvasSize ();
+		workspaceManager.DocumentActivated += (_, e) => e.Document.Workspace.ViewSizeChanged += (_, _) => UpdateCanvasSize ();
 
 		chrome.LastCanvasCursorPointChanged += delegate {
 			var pt = chrome.LastCanvasCursorPoint;
 			cursor.SetText ($"{pt.X}, {pt.Y}");
 		};
 
-		// Selection size widget - left aligned with enough space to display coordinates up to tens of thousands (e.g. 10000, 10000).
-		statusbar.Append (Gtk.Image.NewFromIconName (Resources.Icons.ToolSelectRectangle));
-		var selection_size = Gtk.Label.New ("0, 0");
-		selection_size.Xalign = 0.0f;
-		selection_size.Halign = Gtk.Align.Start;
-		selection_size.WidthChars = 11;
-		statusbar.Append (selection_size);
-
-		workspaceManager.SelectionChanged += delegate {
-			var bounds = workspaceManager.HasOpenDocuments ? workspaceManager.ActiveDocument.Selection.GetBounds () : new RectangleD ();
-			selection_size.SetText ($"{bounds.Width}, {bounds.Height}");
-		};
-
-		// Document zoom widget - right aligned
-		statusbar.Append (new Gtk.Box { Hexpand = true });
 		View.CreateStatusBar (statusbar);
+	}
+
+	private static Gtk.Label CreateStatusBarLabel (Gtk.Box statusbar, int widthChars)
+	{
+		Gtk.Label label = Gtk.Label.New (null);
+		label.Xalign = 0.0f;
+		label.WidthChars = widthChars;
+		statusbar.Append (label);
+		return label;
 	}
 
 	public void RegisterHandlers ()

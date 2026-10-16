@@ -45,6 +45,7 @@ internal sealed class MainWindow
 	FloatingPad[] pads = null!;
 	ColorsPadWidget colors_widget = null!;
 	ImageThumbnailStrip thumbnail_strip = null!;
+	Gio.Menu help_menu = null!;
 
 	private int main_thread_id = -1;
 	private Gtk.DropTarget drop_target = null!;
@@ -323,6 +324,10 @@ internal sealed class MainWindow
 			height,
 			maximize);
 
+		Adw.StyleManager style_manager = Adw.StyleManager.GetDefault ();
+		style_manager.OnNotify += (_, _) => UpdateDarkClass (style_manager);
+		UpdateDarkClass (style_manager);
+
 		CreateMainToolBar ();
 		CreateToolToolBar ();
 
@@ -333,6 +338,14 @@ internal sealed class MainWindow
 
 		PintaCore.Chrome.InitializeApplication (app);
 		PintaCore.Chrome.InitializeWindowShell (window_shell.Window);
+	}
+
+	private void UpdateDarkClass (Adw.StyleManager style_manager)
+	{
+		if (style_manager.Dark)
+			window_shell.Window.AddCssClass ("dark");
+		else
+			window_shell.Window.RemoveCssClass ("dark");
 	}
 
 	private void CreateMainMenu ()
@@ -347,8 +360,8 @@ internal sealed class MainWindow
 		Gio.Menu effectsMenu = Gio.Menu.New ();
 		Gio.Menu addinsMenu = Gio.Menu.New ();
 		Gio.Menu windowMenu = Gio.Menu.New ();
-		Gio.Menu helpMenu = Gio.Menu.New ();
 		Gio.Menu padSection = Gio.Menu.New ();
+		help_menu = Gio.Menu.New ();
 
 		Gio.Menu viewMenu = Gio.Menu.New ();
 		viewMenu.AppendSection (null, padSection);
@@ -361,9 +374,6 @@ internal sealed class MainWindow
 		menuBar.AppendSubmenu (Translations.GetString ("_Layers"), layersMenu);
 		menuBar.AppendSubmenu (Translations.GetString ("_Adjustments"), adjustmentsMenu);
 		menuBar.AppendSubmenu (Translations.GetString ("Effe_cts"), effectsMenu);
-		menuBar.AppendSubmenu (Translations.GetString ("A_dd-ins"), addinsMenu);
-		menuBar.AppendSubmenu (Translations.GetString ("_Window"), windowMenu);
-		menuBar.AppendSubmenu (Translations.GetString ("_Help"), helpMenu);
 
 		// --- Global initializations
 
@@ -382,7 +392,7 @@ internal sealed class MainWindow
 		PintaCore.Actions.Layers.RegisterActions (app, layersMenu);
 		PintaCore.Actions.Addins.RegisterActions (app, addinsMenu);
 		PintaCore.Actions.Window.RegisterActions (app, windowMenu);
-		PintaCore.Actions.Help.RegisterActions (app, helpMenu);
+		PintaCore.Actions.Help.RegisterActions (app, help_menu);
 
 		Gio.Menu effectCategoriesSection = Gio.Menu.New ();
 		effectsMenu.AppendSection (null, PintaCore.Actions.Effects.RepeatMenu);
@@ -397,29 +407,36 @@ internal sealed class MainWindow
 		var main_toolbar = window_shell.CreateToolBar ("main_toolbar");
 		PintaCore.Actions.CreateToolBar (main_toolbar);
 
-		thumbnail_strip = new ImageThumbnailStrip (PintaCore.Workspace) {
-			Hexpand = true,
-			Halign = Gtk.Align.End,
-		};
-		main_toolbar.Append (thumbnail_strip);
-		PintaCore.Actions.View.ImageTabs.Toggled += (visible, _) => thumbnail_strip.Visible = visible;
-
 		PintaCore.Actions.View.PixelGrid.Toggled += (visible, _) => PintaCore.CanvasGrid.ShowPixelGrid = visible;
 		PintaCore.Actions.View.Settings.Activated += (_, _) => ShowSettingsDialog ();
 
 		main_toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
 		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.Rulers));
 		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.PixelGrid));
+		main_toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
+
+		thumbnail_strip = new ImageThumbnailStrip (PintaCore.Workspace) {
+			Hexpand = true,
+			Halign = Gtk.Align.Start,
+		};
+		main_toolbar.Append (thumbnail_strip);
+		PintaCore.Actions.View.ImageTabs.Toggled += (visible, _) => thumbnail_strip.Visible = visible;
+
+		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.ToolBox));
+		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.History));
+		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.Layers));
+		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.Colors));
 		main_toolbar.Append (new Gtk.Button {
 			IconName = PintaCore.Actions.View.Settings.IconName,
 			ActionName = PintaCore.Actions.View.Settings.FullName,
 			TooltipText = PintaCore.Actions.View.Settings.Label,
 		});
-		main_toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
-		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.ToolBox));
-		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.History));
-		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.Layers));
-		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.Colors));
+
+		main_toolbar.Append (new Gtk.MenuButton {
+			IconName = Pinta.Resources.Icons.MenuHelp,
+			MenuModel = help_menu,
+			TooltipText = Translations.GetString ("Help"),
+		});
 	}
 
 	private async void ShowSettingsDialog ()

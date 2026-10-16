@@ -95,7 +95,7 @@ public abstract class BaseBrushTool : BaseTool
 
 		PointD from = last_dab ?? to;
 		PointD dab = from;
-		double spacing = Math.Max (1, BrushWidth / 4.0);
+		double spacing = Math.Max (1, BrushWidth * (1 + 4 * Hardness / 100.0) / 20.0);
 
 		while (dab.Distance (to) >= spacing) {
 			dab = Utility.Lerp (dab, to, (float) (spacing / dab.Distance (to)));

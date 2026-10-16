@@ -200,10 +200,12 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 		tool.ToolItem.Active = true;
 		tool.DoActivated (workspace_manager.ActiveDocumentOrDefault);
 
-		ToolImage.SetFromIconName (tool.Icon);
+		ToolButton.IconName = tool.Icon;
+		ToolButton.TooltipText = tool.Name;
+		RebuildToolList ();
 
 		chrome_manager.ToolToolBar.Append (ToolLabel);
-		chrome_manager.ToolToolBar.Append (ToolImage);
+		chrome_manager.ToolToolBar.Append (ToolButton);
 		chrome_manager.ToolToolBar.Append (ToolSeparator);
 
 		chrome_manager.ToolToolBar.Append (ToolWidgetsScroll);
@@ -379,13 +381,50 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 	}
 
 	private Gtk.Label? tool_label;
-	private Gtk.Image? tool_image;
+	private Gtk.MenuButton? tool_button;
 	private Gtk.Separator? tool_sep;
 	private Gtk.Box? tool_widgets_box;
 	private Gtk.ScrolledWindow? tool_widgets_scroll;
 
 	private Gtk.Label ToolLabel => tool_label ??= Gtk.Label.New (string.Format (" {0}:  ", Translations.GetString ("Tool")));
-	private Gtk.Image ToolImage => tool_image ??= new Gtk.Image ();
+	private Gtk.MenuButton ToolButton => tool_button ??= CreateToolButton ();
+
+	private const string TOOL_ACTION_GROUP = "toolselect";
+	private const string TOOL_ACTION = "select";
+	private Gio.Menu tool_menu = null!;
+
+	private Gtk.MenuButton CreateToolButton ()
+	{
+		tool_menu = Gio.Menu.New ();
+
+		Gio.SimpleAction action = Gio.SimpleAction.New (TOOL_ACTION, GLib.VariantType.New ("s"));
+		action.OnActivate += (sender, args) => SetCurrentTool (args.Parameter!.GetString (out _));
+
+		Gio.SimpleActionGroup group = Gio.SimpleActionGroup.New ();
+		group.AddAction (action);
+
+		Gtk.MenuButton button = new () {
+			MenuModel = tool_menu,
+			AlwaysShowArrow = true,
+			CanFocus = false,
+		};
+		button.InsertActionGroup (TOOL_ACTION_GROUP, group);
+		Gtk.Popover popover = button.Popover!;
+		popover.OnShow += (_, _) => popover.ShowMenuIcons ();
+		return button;
+	}
+
+	private void RebuildToolList ()
+	{
+		tool_menu.RemoveAll ();
+
+		foreach (BaseTool tool in tools) {
+			Gio.MenuItem item = Gio.MenuItem.New (tool.Name, null);
+			item.SetActionAndTargetValue ($"{TOOL_ACTION_GROUP}.{TOOL_ACTION}", GLib.Variant.NewString (tool.GetType ().Name));
+			item.SetIcon (Gio.ThemedIcon.New (tool.Icon));
+			tool_menu.AppendItem (item);
+		}
+	}
 	private Gtk.Separator ToolSeparator => tool_sep ??= GtkExtensions.CreateToolBarSeparator ();
 	private Gtk.Box ToolWidgetsBox => tool_widgets_box ??= Gtk.Box.New (Gtk.Orientation.Horizontal, 0);
 	// Scroll the toolbar contents if they are very long (e.g. the line/curve tool).

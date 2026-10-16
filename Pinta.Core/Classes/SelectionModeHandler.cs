@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System.Collections.Generic;
+using System;
 using ClipperLib;
 
 namespace Pinta.Core;
@@ -32,23 +33,23 @@ namespace Pinta.Core;
 public sealed class SelectionModeHandler
 {
 	private Gtk.Label? selection_label;
-	private ToolBarComboBox? selection_combo_box;
+	private Gtk.ToggleButton[]? mode_buttons;
 
 	private CombineMode selected_mode;
-	private readonly IReadOnlyDictionary<string, CombineMode> combine_modes;
+	private readonly IReadOnlyList<(CombineMode Mode, string Tooltip, string Icon)> combine_modes;
 
 	public SelectionModeHandler (SystemManager system)
 	{
-		combine_modes = new Dictionary<string, CombineMode> () {
-			[Translations.GetString ("Replace")] = CombineMode.Replace,
+		combine_modes = [
+			(CombineMode.Replace, Translations.GetString ("Replace"), Resources.Icons.SelectionReplace),
 			// Translators: {0} is 'Ctrl', or a platform-specific key such as 'Command' on macOS.
-			[Translations.GetString ("Union (+) ({0} + Left Click)", system.CtrlLabel ())] = CombineMode.Union,
-			[Translations.GetString ("Exclude (-) (Right Click)")] = CombineMode.Exclude,
+			(CombineMode.Union, Translations.GetString ("Union (+) ({0} + Left Click)", system.CtrlLabel ()), Resources.Icons.SelectionUnion),
+			(CombineMode.Exclude, Translations.GetString ("Exclude (-) (Right Click)"), Resources.Icons.SelectionExclude),
 			// Translators: {0} is 'Ctrl', or a platform-specific key such as 'Command' on macOS.
-			[Translations.GetString ("Xor ({0} + Right Click)", system.CtrlLabel ())] = CombineMode.Xor,
+			(CombineMode.Xor, Translations.GetString ("Xor ({0} + Right Click)", system.CtrlLabel ()), Resources.Icons.SelectionXor),
 			// Translators: {0} is 'Alt', or a platform-specific key such as 'Option' on macOS.
-			[Translations.GetString ("Intersect ({0} + Left Click)", GtkExtensions.AltLabel ())] = CombineMode.Intersect,
-		};
+			(CombineMode.Intersect, Translations.GetString ("Intersect ({0} + Left Click)", GtkExtensions.AltLabel ()), Resources.Icons.SelectionIntersect),
+		];
 	}
 
 	public void BuildToolbar (Gtk.Box tb, ISettingsService settings)
@@ -57,20 +58,32 @@ public sealed class SelectionModeHandler
 
 		tb.Append (selection_label);
 
-		if (selection_combo_box == null) {
-			selection_combo_box = new ToolBarComboBox (170, 0, false);
+		mode_buttons ??= CreateModeButtons (settings.GetSetting (SettingNames.SELECTION_COMBINE_MODE, 0));
 
-			selection_combo_box.ComboBox.OnChanged += (o, e) => {
-				selected_mode = combine_modes[selection_combo_box.ComboBox.GetActiveText ()!];
+		foreach (Gtk.ToggleButton button in mode_buttons)
+			tb.Append (button);
+	}
+
+	private Gtk.ToggleButton[] CreateModeButtons (int active)
+	{
+		Gtk.ToggleButton[] buttons = new Gtk.ToggleButton[combine_modes.Count];
+
+		for (int i = 0; i < buttons.Length; i++) {
+			var (mode, tooltip, icon) = combine_modes[i];
+			Gtk.ToggleButton button = new () {
+				IconName = icon,
+				TooltipText = tooltip,
+				Group = i == 0 ? null : buttons[0],
+				CanFocus = false,
 			};
-
-			foreach (var mode in combine_modes)
-				selection_combo_box.ComboBox.AppendText (mode.Key);
-
-			selection_combo_box.ComboBox.Active = settings.GetSetting (SettingNames.SELECTION_COMBINE_MODE, 0);
+			button.OnClicked += (_, _) => selected_mode = mode;
+			buttons[i] = button;
 		}
 
-		tb.Append (selection_combo_box);
+		int index = Math.Clamp (active, 0, buttons.Length - 1);
+		buttons[index].Active = true;
+		selected_mode = combine_modes[index].Mode;
+		return buttons;
 	}
 
 	/// <summary>
@@ -165,8 +178,8 @@ public sealed class SelectionModeHandler
 
 	public void OnSaveSettings (ISettingsService settings)
 	{
-		if (selection_combo_box is not null)
-			settings.PutSetting (SettingNames.SELECTION_COMBINE_MODE, selection_combo_box.ComboBox.Active);
+		if (mode_buttons is not null)
+			settings.PutSetting (SettingNames.SELECTION_COMBINE_MODE, Array.FindIndex (mode_buttons, b => b.Active));
 	}
 }
 

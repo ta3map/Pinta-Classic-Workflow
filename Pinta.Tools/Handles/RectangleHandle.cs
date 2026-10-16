@@ -69,6 +69,11 @@ public class RectangleHandle : IToolHandle
 	public bool InvertIfNegative { get; init; }
 
 	/// <summary>
+	/// Whether dragged points are kept within the image.
+	/// </summary>
+	public bool ClampToImage { get; init; } = true;
+
+	/// <summary>
 	/// Whether the user is currently dragging a corner of the rectangle.
 	/// </summary>
 	public bool IsDragging => drag_start_pos is not null;
@@ -84,6 +89,12 @@ public class RectangleHandle : IToolHandle
 			UpdateHandlePositions ();
 		}
 	}
+
+	/// <summary>
+	/// The corners of the rectangle as dragged, without normalizing an inverted rectangle.
+	/// </summary>
+	public PointD StartPoint => start_pt;
+	public PointD EndPoint => end_pt;
 
 	/// <summary>
 	/// Begins a drag operation if the mouse position is on top of a handle.
@@ -116,9 +127,10 @@ public class RectangleHandle : IToolHandle
 			throw new InvalidOperationException ("Drag operation has not been started!");
 
 		// Clamp mouse position to the image size.
-		canvasPos = new PointD (
-			Math.Round (Math.Clamp (canvasPos.X, 0, image_size.Width)),
-			Math.Round (Math.Clamp (canvasPos.Y, 0, image_size.Height)));
+		canvasPos = ClampToImage
+			? new PointD (Math.Clamp (canvasPos.X, 0, image_size.Width), Math.Clamp (canvasPos.Y, 0, image_size.Height))
+			: canvasPos;
+		canvasPos = new PointD (Math.Round (canvasPos.X), Math.Round (canvasPos.Y));
 
 		RectangleI dirty = ComputeInvalidateRect ();
 
