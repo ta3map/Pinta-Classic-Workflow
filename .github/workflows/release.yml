@@ -50,7 +50,7 @@ jobs:
           libfontconfig-dev libfreetype-dev libpixman-1-dev libpng-dev libjpeg-dev libtiff-dev zlib1g-dev \
           libxkbcommon-dev libx11-dev libxext-dev libxrender-dev libxi-dev libxrandr-dev libxcursor-dev \
           libxdamage-dev libxfixes-dev libxinerama-dev libxcb1-dev libxcb-render0-dev libxcb-shm0-dev \
-          libexpat1-dev libffi-dev libxml2-dev libappstream-dev libegl-dev
+          libexpat1-dev libffi-dev libxml2-dev libappstream-dev libegl-dev libdrm-dev
     - name: Build GTK Bundle
       if: steps.cache.outputs.cache-hit != 'true'
       run: installer/linux/build_gtk_bundle.sh
