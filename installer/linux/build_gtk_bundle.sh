@@ -2,6 +2,7 @@
 set -e
 
 GTK_VERSION="4.18.6"
+PANGO_VERSION="1.56.4"
 ADW_VERSION="1.7.12"
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK_DIR="${ROOT_DIR}/gtk-build"
@@ -16,6 +17,7 @@ export LD_LIBRARY_PATH="${PREFIX}/lib"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
 
 git clone --depth 1 -b "${GTK_VERSION}" https://gitlab.gnome.org/GNOME/gtk.git
+git clone --depth 1 -b "${PANGO_VERSION}" https://gitlab.gnome.org/GNOME/pango.git gtk/subprojects/pango
 git clone --depth 1 -b "${ADW_VERSION}" https://gitlab.gnome.org/GNOME/libadwaita.git
 
 meson setup gtk/_build gtk --prefix="${PREFIX}" --libdir=lib --buildtype=release \
