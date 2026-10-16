@@ -119,7 +119,7 @@ localizeManifestCommand.SetAction (result => {
 		result.GetRequiredValue (resourceFilesOption));
 });
 
-RootCommand rootCommand = new ("Command-line utilities for Pinta.NET add-ins.");
+RootCommand rootCommand = new ("Command-line utilities for Pinta add-ins.");
 rootCommand.Subcommands.Add (localizeManifestCommand);
 
 return rootCommand.Parse (args).Invoke ();

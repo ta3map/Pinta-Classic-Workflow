@@ -41,12 +41,12 @@ public sealed class AppActions
 			"about",
 			Translations.GetString ("About"),
 			null,
-			Resources.StandardIcons.HelpAbout);
+			Resources.Icons.MenuAbout);
 		Exit = new Command (
 			"quit",
 			Translations.GetString ("Quit"),
 			null,
-			Resources.StandardIcons.ApplicationExit,
+			Resources.Icons.MenuExit,
 			shortcuts: ["<Primary>Q"]);
 	}
 

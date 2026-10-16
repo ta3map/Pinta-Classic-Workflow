@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
+      options: --privileged
+    steps:
+    - uses: actions/checkout@v6
+    - uses: flathub-infra/flatpak-github-actions/flatpak-builder@master
+      with:
+        bundle: PintaClassicWorkflow.flatpak
+        manifest-path: flatpak/io.github.ta3map.PintaClassicWorkflow.yml
+        cache-key: flatpak-builder-${{ github.sha }}
+
+  deb:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 8.0.x
+    - name: Install Apt Dependencies
+      run: |
+        sudo apt update
+        sudo apt install gettext
+    - name: Build Package
+      run: installer/linux/build_deb.sh
+    - name: Upload Package
+      uses: actions/upload-artifact@v7
+      with:
+        name: pinta-classic-workflow.deb
+        path: pinta-classic-workflow_*_amd64.deb
+        if-no-files-found: error
+
+  release:
+    if: startsWith( github.ref, 'refs/tags/' )
+    needs: [flatpak, deb]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/download-artifact@v5
+      with:
+        path: artifacts
+        merge-multiple: true
+    - uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          artifacts/*.flatpak
+          artifacts/*.deb

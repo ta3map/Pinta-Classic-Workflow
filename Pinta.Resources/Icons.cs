@@ -32,11 +32,11 @@ public static class StandardIcons
 
 	public const string DialogError = "dialog-error-symbolic";
 
-	public const string DocumentNew = "document-new-symbolic";
-	public const string DocumentOpen = "document-open-symbolic";
+	public const string DocumentNew = "toolbar-new";
+	public const string DocumentOpen = "toolbar-open";
 	public const string DocumentPrint = "document-print-symbolic";
 	public const string DocumentRevert = "document-revert-symbolic";
-	public const string DocumentSave = "document-save-symbolic";
+	public const string DocumentSave = "toolbar-save";
 	public const string DocumentSaveAs = "document-save-as-symbolic";
 
 	public const string FormatJustifyLeft = "format-justify-left-symbolic";
@@ -45,12 +45,12 @@ public static class StandardIcons
 	public const string FormatTextItalic = "format-text-italic-symbolic";
 	public const string FormatTextUnderline = "format-text-underline-symbolic";
 
-	public const string EditCopy = "edit-copy-symbolic";
-	public const string EditCut = "edit-cut-symbolic";
-	public const string EditPaste = "edit-paste-symbolic";
-	public const string EditRedo = "edit-redo-symbolic";
+	public const string EditCopy = "toolbar-copy";
+	public const string EditCut = "toolbar-cut";
+	public const string EditPaste = "toolbar-paste";
+	public const string EditRedo = "toolbar-redo";
 	public const string EditSelectAll = "edit-select-all-symbolic";
-	public const string EditUndo = "edit-undo-symbolic";
+	public const string EditUndo = "toolbar-undo";
 	public const string EditSwap = "edit-swap-vert-symbolic";
 
 	public const string GoPrevious = "go-previous-symbolic";
@@ -90,7 +90,7 @@ public static class Icons
 
 	public const string AdjustmentsAutoLevel = "adjustments-autolevel";
 	public const string AdjustmentsBlackAndWhite = "adjustments-blackandwhite";
-	public const string AdjustmentsBrightnessContrast = "adjustments-brightnesscontrast-symbolic";
+	public const string AdjustmentsBrightnessContrast = "adjustments-brightnesscontrast";
 	public const string AdjustmentsCurves = "adjustments-curves";
 	public const string AdjustmentsHueSaturation = "adjustments-huesaturation";
 	public const string AdjustmentsInvertColors = "adjustments-invertcolors";
@@ -98,24 +98,24 @@ public static class Icons
 	public const string AdjustmentsPosterize = "adjustments-posterize";
 	public const string AdjustmentsSepia = "adjustments-sepia";
 
-	public const string AntiAliasingEnabled = "tool-antialiasing-enabled-symbolic";
-	public const string AntiAliasingDisabled = "tool-antialiasing-disabled-symbolic";
+	public const string AntiAliasingEnabled = "tool-antialiasing-enabled";
+	public const string AntiAliasingDisabled = "tool-antialiasing-disabled";
 
-	public const string BlendingNormal = "tool-blending-normal-symbolic";
-	public const string BlendingOverwrite = "tool-blending-overwrite-symbolic";
+	public const string BlendingNormal = "tool-blending-normal";
+	public const string BlendingOverwrite = "tool-blending-overwrite";
 
-	public const string ColorModeColor = "tool-gradient-colormode-color-symbolic";
-	public const string ColorModeTransparency = "tool-gradient-colormode-transparency-symbolic";
+	public const string ColorModeColor = "tool-gradient-colormode-color";
+	public const string ColorModeTransparency = "tool-gradient-colormode-transparency";
 
-	public const string CursorPosition = "ui-cursor-location-symbolic";
+	public const string CursorPosition = "ui-cursor-location";
 
 	public const string EditSelectionErase = "edit-selection-erase";
 	public const string EditSelectionFill = "edit-selection-fill";
 	public const string EditSelectionInvert = "edit-selection-invert";
 	public const string EditSelectionOffset = "edit-selection-offset";
-	public const string EditSelectionNone = "ui-deselect-symbolic";
+	public const string EditSelectionNone = "edit-selection-none";
 
-	public const string EffectsAlignObject = "tool-move-symbolic";
+	public const string EffectsAlignObject = "tool-move";
 	public const string EffectsArtisticInkSketch = "effects-artistic-inksketch";
 	public const string EffectsArtisticOilPainting = "effects-artistic-oilpainting";
 	public const string EffectsArtisticPencilSketch = "effects-artistic-pencilsketch";
@@ -126,7 +126,7 @@ public static class Icons
 	public const string EffectsBlursUnfocus = "effects-blurs-unfocus";
 	public const string EffectsBlursZoomBlur = "effects-blurs-zoomblur";
 	public const string EffectsColorDithering = "effects-color-dithering";
-	public const string EffectsDefault = "effects-default-symbolic";
+	public const string EffectsDefault = "effects-default";
 	public const string EffectsDistortBulge = "effects-distort-bulge";
 	public const string EffectsDistortDents = "effects-distort-dents";
 	public const string EffectsDistortFrostedGlass = "effects-distort-frostedglass";
@@ -152,34 +152,34 @@ public static class Icons
 	public const string EffectsStylizeOutline = "effects-stylize-outline";
 	public const string EffectsStylizeRelief = "effects-stylize-relief";
 
-	public const string GradientConical = "tool-gradient-conical-symbolic";
-	public const string GradientDiamond = "tool-gradient-diamond-symbolic";
-	public const string GradientLinear = "tool-gradient-linear-symbolic";
-	public const string GradientLinearReflected = "tool-gradient-linear-reflected-symbolic";
-	public const string GradientRadial = "tool-gradient-radial-symbolic";
+	public const string GradientConical = "tool-gradient-conical";
+	public const string GradientDiamond = "tool-gradient-diamond";
+	public const string GradientLinear = "tool-gradient-linear";
+	public const string GradientLinearReflected = "tool-gradient-linear-reflected";
+	public const string GradientRadial = "tool-gradient-radial";
 
-	public const string FillStyleBackground = "tool-fillstyle-background-symbolic";
-	public const string FillStyleFill = "tool-fillstyle-fill-symbolic";
-	public const string FillStyleOutline = "tool-fillstyle-outline-symbolic";
-	public const string FillStyleOutlineFill = "tool-fillstyle-outlinefill-symbolic";
+	public const string FillStyleBackground = "tool-fillstyle-background";
+	public const string FillStyleFill = "tool-fillstyle-fill";
+	public const string FillStyleOutline = "tool-fillstyle-outline";
+	public const string FillStyleOutlineFill = "tool-fillstyle-outlinefill";
 
 	public const string LassoFreeform = "tool-select-lasso-freeform-symbolic";
 	public const string LassoPolygon = "tool-select-lasso-polygon-symbolic";
 
 	public const string HelpBug = "help-bug";
 	public const string HelpTranslate = "help-translate";
-	public const string HelpWebsite = "help-website-symbolic";
+	public const string HelpWebsite = "help-website";
 
 	public const string HistoryList = "ui-historylist-symbolic";
 
-	public const string ImageCrop = "ui-crop-to-selection-symbolic";
+	public const string ImageCrop = "image-crop";
 	public const string ImageResize = "image-resize";
 	public const string ImageResizeCanvas = "image-resize-canvas";
-	public const string ImageFlipHorizontal = "image-flip-horizontal-symbolic";
-	public const string ImageFlipVertical = "image-flip-vertical-symbolic";
-	public const string ImageRotate90CW = "image-rotate-90cw-symbolic";
-	public const string ImageRotate90CCW = "image-rotate-90ccw-symbolic";
-	public const string ImageRotate180 = "image-rotate-180-symbolic";
+	public const string ImageFlipHorizontal = "image-flip-horizontal";
+	public const string ImageFlipVertical = "image-flip-vertical";
+	public const string ImageRotate90CW = "image-rotate-90cw";
+	public const string ImageRotate90CCW = "image-rotate-90ccw";
+	public const string ImageRotate180 = "image-rotate-180";
 	public const string ImageFlatten = "image-flatten";
 	public const string OrientationPortrait = "image-orientation-portrait-symbolic";
 	public const string OrientationLandscape = "image-orientation-landscape-symbolic";
@@ -188,29 +188,29 @@ public static class Icons
 	public const string JoinRound = "join-round-symbolic";
 	public const string JoinBevel = "join-bevel-symbolic";
 
-	public const string LayerDelete = "layers-remove-layer-symbolic";
-	public const string LayerDuplicate = "layers-duplicate-layer-symbolic";
-	public const string LayerFlipHorizontal = ImageFlipHorizontal;
-	public const string LayerFlipVertical = ImageFlipVertical;
+	public const string LayerDelete = "layers-remove-layer";
+	public const string LayerDuplicate = "layers-duplicate-layer";
+	public const string LayerFlipHorizontal = "layers-flip-horizontal";
+	public const string LayerFlipVertical = "layers-flip-vertical";
 	public const string LayerImport = "layer-import";
-	public const string LayerMergeDown = "layers-merge-down-symbolic";
-	public const string LayerMoveDown = "layers-move-layer-down-symbolic";
-	public const string LayerMoveUp = "layers-move-layer-up-symbolic";
-	public const string LayerNew = "layers-add-layer-symbolic";
-	public const string LayerProperties = "document-properties-symbolic";
-	public const string LayerRotateZoom = "layers-rotate-zoom-symbolic";
+	public const string LayerMergeDown = "layers-merge-down";
+	public const string LayerMoveDown = "layers-move-layer-down";
+	public const string LayerMoveUp = "layers-move-layer-up";
+	public const string LayerNew = "layers-add-layer";
+	public const string LayerProperties = "layers-properties";
+	public const string LayerRotateZoom = "layers-rotate-zoom";
 
-	public const string Pinta = "io.github.TandyColorComputer3.PintaDotNet";
+	public const string Pinta = "io.github.ta3map.PintaClassicWorkflow";
 
-	public const string ResizeCanvasBase = "image-resize-canvas-base-symbolic";
-	public const string ResizeCanvasDown = "image-resize-canvas-down-symbolic";
-	public const string ResizeCanvasLeft = "image-resize-canvas-left-symbolic";
-	public const string ResizeCanvasNE = "image-resize-canvas-ne-symbolic";
-	public const string ResizeCanvasNW = "image-resize-canvas-nw-symbolic";
-	public const string ResizeCanvasRight = "image-resize-canvas-right-symbolic";
-	public const string ResizeCanvasSE = "image-resize-canvas-se-symbolic";
-	public const string ResizeCanvasSW = "image-resize-canvas-sw-symbolic";
-	public const string ResizeCanvasUp = "image-resize-canvas-up-symbolic";
+	public const string ResizeCanvasBase = "image-resize-canvas-base";
+	public const string ResizeCanvasDown = "image-resize-canvas-down";
+	public const string ResizeCanvasLeft = "image-resize-canvas-left";
+	public const string ResizeCanvasNE = "image-resize-canvas-ne";
+	public const string ResizeCanvasNW = "image-resize-canvas-nw";
+	public const string ResizeCanvasRight = "image-resize-canvas-right";
+	public const string ResizeCanvasSE = "image-resize-canvas-se";
+	public const string ResizeCanvasSW = "image-resize-canvas-sw";
+	public const string ResizeCanvasUp = "image-resize-canvas-up";
 
 	public const string Sampling1 = "tool-colorpicker-sampling-1x1-symbolic";
 	public const string Sampling3 = "tool-colorpicker-sampling-3x3-symbolic";
@@ -232,36 +232,49 @@ public static class Icons
 	public const string TextVariantUnicase = "text-variant-unicase-symbolic";
 	public const string TextVariantTitleCaps = "text-variant-title-caps-symbolic";
 
-	public const string ToolCloneStamp = "tool-clonestamp-symbolic";
-	public const string ToolColorPicker = "tool-colorpicker-symbolic";
+	public const string ToolCloneStamp = "tool-clonestamp";
+	public const string ToolColorPicker = "tool-colorpicker";
 	public const string ToolColorPickerPreviousTool = "go-previous-symbolic";
-	public const string ToolEllipse = "tool-ellipse-symbolic";
-	public const string ToolEraser = "tool-eraser-symbolic";
-	public const string ToolFreeformShape = "tool-freeformshape-symbolic";
-	public const string ToolGradient = "tool-gradient-symbolic";
-	public const string ToolLine = "tool-line-symbolic";
-	public const string ToolMove = "tool-move-symbolic";
+	public const string ToolEllipse = "tool-ellipse";
+	public const string ToolEraser = "tool-eraser";
+	public const string ToolFreeformShape = "tool-freeformshape";
+	public const string ToolGradient = "tool-gradient";
+	public const string ToolLine = "tool-line";
+	public const string ToolMove = "tool-move";
 	public const string ToolMoveCursor = "tool-move-cursor-symbolic";
-	public const string ToolMoveSelection = "tool-move-selection-symbolic";
-	public const string ToolPaintBrush = "tool-paintbrush-symbolic";
-	public const string ToolPaintBucket = "tool-paintbucket-symbolic";
-	public const string ToolPan = "tool-pan-symbolic";
-	public const string ToolPencil = "tool-pencil-symbolic";
-	public const string ToolRecolor = "tool-recolor-symbolic";
-	public const string ToolRectangle = "tool-rectangle-symbolic";
-	public const string ToolRectangleRounded = "tool-rectangle-rounded-symbolic";
-	public const string ToolSelectEllipse = "tool-select-ellipse-symbolic";
-	public const string ToolSelectLasso = "tool-select-lasso-symbolic";
-	public const string ToolSelectMagicWand = "tool-select-magicwand-symbolic";
-	public const string ToolSelectRectangle = "tool-select-rectangle-symbolic";
-	public const string ToolText = "tool-text-symbolic";
-	public const string ToolZoom = "tool-zoom-symbolic";
+	public const string ToolMoveSelection = "tool-move-selection";
+	public const string ToolPaintBrush = "tool-paintbrush";
+	public const string ToolPaintBucket = "tool-paintbucket";
+	public const string ToolPan = "tool-pan";
+	public const string ToolPencil = "tool-pencil";
+	public const string ToolRecolor = "tool-recolor";
+	public const string ToolRectangle = "tool-rectangle";
+	public const string ToolRectangleRounded = "tool-rectangle-rounded";
+	public const string ToolSelectEllipse = "tool-select-ellipse";
+	public const string ToolSelectLasso = "tool-select-lasso";
+	public const string ToolSelectMagicWand = "tool-select-magicwand";
+	public const string ToolSelectRectangle = "tool-select-rectangle";
+	public const string ToolText = "tool-text";
+	public const string ToolZoom = "tool-zoom";
 
 	public const string ViewGrid = "view-grid";
 	public const string ViewRulers = "view-rulers";
 	public const string ViewZoom100 = "view-zoom-100";
 	public const string ViewZoomSelection = "view-zoom-selection";
 	public const string ViewZoomWindow = "view-zoom-window";
+	public const string ViewZoomIn = "view-zoom-in";
+	public const string ViewZoomOut = "view-zoom-out";
+
+	public const string EditSelectAll = "edit-select-all";
+
+	public const string MenuAbout = "toolbar-about";
+	public const string MenuClose = "toolbar-close";
+	public const string MenuExit = "toolbar-exit";
+	public const string MenuHelp = "toolbar-help";
+	public const string MenuHistory = "toolbar-history";
+	public const string MenuPrint = "toolbar-print";
+	public const string MenuRevert = "toolbar-revert";
+	public const string MenuSaveAs = "toolbar-save-as";
 }
 
 /// <summary>

@@ -33,8 +33,8 @@ namespace Pinta.Core;
 public sealed class FileActions
 {
 	public Command New { get; }
-	public Command NewScreenshot { get; }
 	public Command Open { get; }
+	public Gio.SimpleAction OpenRecent { get; } = Gio.SimpleAction.New ("openRecent", GLib.VariantType.String);
 	public Command Close { get; }
 	public Command Save { get; }
 	public Command SaveAs { get; }
@@ -52,7 +52,8 @@ public sealed class FileActions
 
 	private readonly SystemManager system;
 	private readonly AppActions app;
-	public FileActions (SystemManager system, AppActions app)
+	private readonly RecentFileManager recent_files;
+	public FileActions (SystemManager system, AppActions app, RecentFileManager recentFiles)
 	{
 		New = new Command (
 			"new",
@@ -61,12 +62,6 @@ public sealed class FileActions
 			Resources.StandardIcons.DocumentNew,
 			shortcuts: ["<Primary>N"]
 		) { ShortLabel = Translations.GetString ("New") };
-
-		NewScreenshot = new Command (
-			"NewScreenshot",
-			Translations.GetString ("New Screenshot..."),
-			null,
-			Resources.StandardIcons.ViewFullscreen);
 
 		Open = new Command (
 			"open",
@@ -80,7 +75,7 @@ public sealed class FileActions
 			"close",
 			Translations.GetString ("Close"),
 			null,
-			Resources.StandardIcons.WindowClose,
+			Resources.Icons.MenuClose,
 			shortcuts: ["<Primary>W"]);
 
 		Save = new Command (
@@ -94,17 +89,18 @@ public sealed class FileActions
 			"saveAs",
 			Translations.GetString ("Save As..."),
 			null,
-			Resources.StandardIcons.DocumentSaveAs,
+			Resources.Icons.MenuSaveAs,
 			shortcuts: ["<Primary><Shift>S"]);
 
 		Print = new Command (
 			"print",
 			Translations.GetString ("Print"),
 			null,
-			Resources.StandardIcons.DocumentPrint);
+			Resources.Icons.MenuPrint);
 
 		this.system = system;
 		this.app = app;
+		recent_files = recentFiles;
 	}
 
 	public void RegisterActions (Gtk.Application application, Gio.Menu menu)
@@ -120,8 +116,8 @@ public sealed class FileActions
 		if (!isMac) close_section.AppendItem (app.Exit.CreateMenuItem ()); // This is part of the application menu on macOS
 
 		menu.AppendItem (New.CreateMenuItem ());
-		menu.AppendItem (NewScreenshot.CreateMenuItem ());
 		menu.AppendItem (Open.CreateMenuItem ());
+		menu.AppendSubmenu (Translations.GetString ("Open Recent"), recent_files.Menu);
 		menu.AppendSection (null, save_section);
 		menu.AppendSection (null, close_section);
 #if false
@@ -131,13 +127,13 @@ public sealed class FileActions
 #endif
 		application.AddCommands ([
 			New,
-			NewScreenshot,
 			Open,
 
 			Save,
 			SaveAs,
 
 			Close]);
+		application.AddAction (OpenRecent);
 
 		if (!isMac)
 			application.AddCommand (app.Exit); // This is part of the application menu on macOS

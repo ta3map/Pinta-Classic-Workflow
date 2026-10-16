@@ -36,8 +36,8 @@
     <MakeDir Directories="$(InstallBinDir)" />
     <Copy SourceFiles="$(SourceDir)/xdg/pinta.1" DestinationFolder="$(InstallManDir)/man1" />
     <Exec Command='gzip -f "$(InstallManDir)/man1/pinta.1"' />
-    <Copy SourceFiles="$(SourceDir)/xdg/io.github.TandyColorComputer3.PintaDotNet.metainfo.xml" DestinationFolder="$(InstallDataRootDir)/metainfo" />
-    <Copy SourceFiles="$(SourceDir)/xdg/io.github.TandyColorComputer3.PintaDotNet.desktop" DestinationFolder="$(InstallDataRootDir)/applications" />
+    <Copy SourceFiles="$(SourceDir)/xdg/io.github.ta3map.PintaClassicWorkflow.metainfo.xml" DestinationFolder="$(InstallDataRootDir)/metainfo" />
+    <Copy SourceFiles="$(SourceDir)/xdg/io.github.ta3map.PintaClassicWorkflow.desktop" DestinationFolder="$(InstallDataRootDir)/applications" />
     <Copy SourceFiles="@(Icon)" DestinationFolder="$(InstallDataRootDir)/icons/%(Icon.RecursiveDir)" />
     <Copy SourceFiles="@(Translation)" DestinationFolder="$(InstallLocaleDir)/%(Translation.RecursiveDir)" />
   </Target>
@@ -49,8 +49,8 @@
     <Delete Files="$(InstallLocaleDir)/%(Translation.Code)/LC_MESSAGES/pinta.mo" />
     <Delete Files="$(InstallManDir)/man1/pinta.1" />
     <Delete Files="$(InstallManDir)/man1/pinta.1.gz" />
-    <Delete Files="$(InstallDataRootDir)/metainfo/io.github.TandyColorComputer3.PintaDotNet.metainfo.xml" />
-    <Delete Files="$(InstallDataRootDir)/applications/io.github.TandyColorComputer3.PintaDotNet.desktop" />
+    <Delete Files="$(InstallDataRootDir)/metainfo/io.github.ta3map.PintaClassicWorkflow.metainfo.xml" />
+    <Delete Files="$(InstallDataRootDir)/applications/io.github.ta3map.PintaClassicWorkflow.desktop" />
     <Delete Files="$(InstallDataRootDir)/icons/%(Icon.RecursiveDir)/%(Icon.Filename)%(Icon.Extension)" />
     <Delete Files="$(InstallLocaleDir)/%(Translation.RecursiveDir)/pinta.mo" />
   </Target>

@@ -1,0 +1,47 @@
+app-id: io.github.ta3map.PintaClassicWorkflow
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.dotnet8
+command: pinta
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --share=network
+  - --filesystem=home
+  - --env=DOTNET_ROOT=/app/lib/dotnet
+modules:
+  - name: intltool
+    cleanup:
+      - '*'
+    sources:
+      - type: archive
+        url: https://launchpad.net/intltool/trunk/0.51.0/+download/intltool-0.51.0.tar.gz
+        sha256: 67c74d94196b153b774ab9f89b2fa6c6ba79352407037c8c14d5aeb334e959cd
+
+  - name: pinta
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/dotnet8/bin
+      build-args:
+        - --share=network
+      env:
+        DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+        DOTNET_NOLOGO: 'true'
+    build-commands:
+      - /usr/lib/sdk/dotnet8/bin/install.sh
+      - ./autogen.sh --prefix=/app
+      - make install
+    sources:
+      - type: dir
+        path: ..
+        skip:
+          - build
+          - publish
+          - .git
+          - .flatpak-builder
+          - flatpak_app
+          - repo

@@ -81,8 +81,13 @@ public class Command
 			: [.. shortcuts];
 	}
 
-	public Gio.MenuItem CreateMenuItem ()
-		=> Gio.MenuItem.New (Label, FullName);
+	public Gio.MenuItem CreateMenuItem (string? label = null)
+	{
+		Gio.MenuItem item = Gio.MenuItem.New (label ?? Label, FullName);
+		if (IconName is not null)
+			item.SetIcon (Gio.ThemedIcon.New (IconName));
+		return item;
+	}
 }
 
 public sealed class ToggleCommand : Command
@@ -91,14 +96,16 @@ public sealed class ToggleCommand : Command
 		string name,
 		string label,
 		string? tooltip,
-		string? stock_id
+		string? stock_id,
+		IReadOnlyList<string>? shortcuts = null
 	)
 		: base (
 			name,
 			label,
 			tooltip,
 			stock_id,
-			GLib.Variant.NewBoolean (false)
+			GLib.Variant.NewBoolean (false),
+			shortcuts
 		)
 	{
 		Activated += (_, _) => {

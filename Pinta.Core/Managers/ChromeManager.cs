@@ -50,8 +50,6 @@ public sealed class ChromeManager : IChromeService
 	// but it would be nice to rewrite it to provably non-null.
 	public Gtk.Application Application { get; private set; } = null!;
 	public Gtk.Window MainWindow { get; private set; } = null!;
-	public Gtk.Widget Dock { get; private set; } = null!;
-	public Gtk.Widget ImageTabsNotebook { get; private set; } = null!;
 	private IProgressDialog progress_dialog = null!;
 	private ErrorDialogHandler error_dialog_handler = null!;
 	private MessageDialogHandler message_dialog_handler = null!;
@@ -116,16 +114,6 @@ public sealed class ChromeManager : IChromeService
 	public void InitializeToolBox (Gtk.Widget toolbox)
 	{
 		ToolBox = toolbox;
-	}
-
-	public void InitializeDock (Gtk.Widget dock)
-	{
-		Dock = dock;
-	}
-
-	public void InitializeImageTabsNotebook (Gtk.Widget notebook)
-	{
-		ImageTabsNotebook = notebook;
 	}
 
 	public void InitializeMainMenu (Gio.Menu adj_menu, Gio.Menu effects_menu)

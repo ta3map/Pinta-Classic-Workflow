@@ -80,8 +80,8 @@ jobs:
     - name: Upload Installer
       uses: actions/upload-artifact@v7
       with:
-        name: PintaDotNet-linux-dotnet-${{matrix.dotnet_version}}.AppImage
-        path: ${{env.BUILD_DIR}}/PintaDotNet-${{env.PINTA_VERSION}}-linux-x64.AppImage
+        name: PintaClassicWorkflow-linux-dotnet-${{matrix.dotnet_version}}.AppImage
+        path: ${{env.BUILD_DIR}}/PintaClassicWorkflow-${{env.PINTA_VERSION}}-linux-x64.AppImage
         if-no-files-found: error
 
   build-macos:
@@ -113,33 +113,18 @@ jobs:
         DYLD_LIBRARY_PATH: ${{matrix.build.lib_path}}
       run: dotnet test Pinta.sln -c Release
 
-    - name: Add Cert to Keychain
-      if: github.event_name != 'pull_request'
-      uses: apple-actions/import-codesign-certs@v6
-      with:
-        p12-file-base64: ${{ secrets.MAC_CERTS_BASE64 }}
-        p12-password: ${{ secrets.MAC_CERTS_PASSWORD }}
-
     - name: Build Installer
       if: github.event_name != 'pull_request'
-      env:
-        APP_NAME: Pinta.NET
-        APP_BUNDLE_ID: io.github.TandyColorComputer3.PintaDotNet
-        DMG_BASENAME: PintaDotNet
-        MAC_CODESIGN_IDENTITY: ${{ secrets.MAC_CODESIGN_IDENTITY }}
-        MAC_NOTARY_APPLE_ID: ${{ secrets.MAC_NOTARY_APPLE_ID }}
-        MAC_NOTARY_TEAM_ID: ${{ secrets.MAC_NOTARY_TEAM_ID }}
-        MAC_NOTARY_PASSWORD: ${{ secrets.MAC_DEV_PASSWORD }}
       run: |
         cd installer/macos
-        ./build_installer.sh ${{matrix.build.dotnet_rid}}
+        ./build_installer.sh --skip-signing ${{matrix.build.dotnet_rid}}
 
     - name: Upload Installer
       if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v7
       with:
-        name: "PintaDotNet-${{matrix.build.dotnet_rid}}.dmg"
-        path: installer/macos/PintaDotNet-${{matrix.build.dotnet_rid}}.dmg
+        name: "PintaClassicWorkflow-${{matrix.build.dotnet_rid}}.dmg"
+        path: installer/macos/PintaClassicWorkflow-${{matrix.build.dotnet_rid}}.dmg
         if-no-files-found: error
 
   build-windows:
@@ -185,33 +170,9 @@ jobs:
         iscc -DProductArch="${{matrix.build.setup_arch}}" installer/windows/installer.iss
 
     - name: Upload Installer
-      id: upload-unsigned-installer
       uses: actions/upload-artifact@v7
       with:
-        name: "PintaDotNet-${{matrix.build.dotnet_rid}}.exe"
+        name: "PintaClassicWorkflow-${{matrix.build.dotnet_rid}}.exe"
         path: installer/windows/*.exe
-        if-no-files-found: error
-
-    # Only enable signing for tagged releases.
-    - name: Sign Installer
-      if: startsWith( github.ref, 'refs/tags/' )
-      uses: signpath/github-action-submit-signing-request@v2
-      with:
-        api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
-        organization-id: "fb6d32c7-2808-4358-b9eb-f7482eb8c0a5"
-        project-slug: Pinta
-        signing-policy-slug: release-signing
-        artifact-configuration-slug: Zipped_Exe
-        github-artifact-id: '${{ steps.upload-unsigned-installer.outputs.artifact-id }}'
-        wait-for-completion: true
-        output-artifact-directory: './signed-artifacts'
-
-    - name: Upload Signed Installer
-      if: startsWith( github.ref, 'refs/tags/' )
-      id: upload-signed-installer
-      uses: actions/upload-artifact@v7
-      with:
-        name: "PintaDotNet-signed-${{matrix.build.dotnet_rid}}.exe"
-        path: ./signed-artifacts/*.exe
         if-no-files-found: error
 

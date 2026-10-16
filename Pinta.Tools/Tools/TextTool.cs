@@ -89,7 +89,7 @@ public sealed class TextTool : BaseTool
 		=> new (Gdk.Constants.KEY_T);
 
 	public override int Priority
-		=> 35;
+		=> 33;
 
 	public override string StatusBarText
 		=> Translations.GetString ("Left click to place cursor, then type desired text. Text color is primary color.");
@@ -126,6 +126,8 @@ public sealed class TextTool : BaseTool
 	private Gtk.FontDialogButton font_button = null!;
 	private ToolBarDropDownButton variant_btn = null!;
 	private Gtk.SpinButton font_size = null!;
+	private Gtk.MenuButton? font_size_presets;
+	private Gtk.MenuButton? outline_width_presets;
 	private ToolBarDropDownButton weight_btn = null!;
 	private Gtk.ToggleButton italic_btn = null!;
 	private Gtk.ToggleButton underscore_btn = null!;
@@ -244,6 +246,9 @@ public sealed class TextTool : BaseTool
 			};
 			font_size.OnValueChanged += HandleFontSizeChanged;
 		}
+
+		font_size_presets ??= GtkExtensions.CreateToolBarPresetsButton (font_size, GtkExtensions.FontSizePresets);
+		tb.Append (font_size_presets);
 
 		tb.Append (font_size);
 
@@ -439,6 +444,9 @@ public sealed class TextTool : BaseTool
 				Settings.GetSetting (SettingNames.TEXT_OUTLINE_WIDTH, 2));
 			outline_width.OnValueChanged += (_, __) => HandleFontChanged ();
 		}
+
+		outline_width_presets ??= GtkExtensions.CreateToolBarPresetsButton (outline_width, GtkExtensions.SizePresets);
+		tb.Append (outline_width_presets);
 
 		tb.Append (outline_width);
 

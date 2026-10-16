@@ -301,33 +301,29 @@ public sealed class LayerActions
 
 	private void HandlePintaCoreActionsLayersMoveLayerUpActivated (object sender, EventArgs e)
 	{
-		Document doc = workspace.ActiveDocument;
-
-		tools.Commit ();
-
-		SwapLayersHistoryItem hist = new (
-			Resources.Icons.LayerMoveUp,
-			Translations.GetString ("Move Layer Up"),
-			doc.Layers.CurrentUserLayerIndex,
-			doc.Layers.CurrentUserLayerIndex + 1);
-
-		doc.Layers.MoveCurrentLayerUp ();
-		doc.History.PushNewItem (hist);
+		int index = workspace.ActiveDocument.Layers.CurrentUserLayerIndex;
+		MoveLayer (index, index + 1);
 	}
 
 	private void HandlePintaCoreActionsLayersMoveLayerDownActivated (object sender, EventArgs e)
+	{
+		int index = workspace.ActiveDocument.Layers.CurrentUserLayerIndex;
+		MoveLayer (index, index - 1);
+	}
+
+	public void MoveLayer (int from, int to)
 	{
 		Document doc = workspace.ActiveDocument;
 
 		tools.Commit ();
 
-		SwapLayersHistoryItem hist = new (
-			Resources.Icons.LayerMoveDown,
-			Translations.GetString ("Move Layer Down"),
-			doc.Layers.CurrentUserLayerIndex,
-			doc.Layers.CurrentUserLayerIndex - 1);
+		MoveLayerHistoryItem hist = new (
+			to > from ? Resources.Icons.LayerMoveUp : Resources.Icons.LayerMoveDown,
+			to > from ? Translations.GetString ("Move Layer Up") : Translations.GetString ("Move Layer Down"),
+			from,
+			to);
 
-		doc.Layers.MoveCurrentLayerDown ();
+		doc.Layers.MoveLayer (from, to);
 		doc.History.PushNewItem (hist);
 	}
 

@@ -33,11 +33,39 @@ public sealed class EffectsActions
 {
 	public Dictionary<string, Gio.Menu> Menus { get; } = [];
 	public Collection<Command> Actions { get; } = [];
+	public Command RepeatLastEffect { get; }
+	public BaseEffect? LastEffect { get; private set; }
 
 	private readonly ChromeManager chrome;
 	public EffectsActions (ChromeManager chrome)
 	{
 		this.chrome = chrome;
+
+		RepeatLastEffect = new Command (
+			"repeatlasteffect",
+			Translations.GetString ("Repeat Last Effect"),
+			null,
+			Resources.Icons.EffectsDefault,
+			shortcuts: ["<Primary>F"]) {
+			Sensitive = false,
+		};
+
+		RepeatMenu.AppendItem (RepeatLastEffect.CreateMenuItem ());
+	}
+
+	/// <summary>
+	/// Menu section holding the "Repeat" item, whose label names the last effect.
+	/// </summary>
+	public Gio.Menu RepeatMenu { get; } = Gio.Menu.New ();
+
+	public void SetLastEffect (BaseEffect effect)
+	{
+		LastEffect = effect;
+		RepeatLastEffect.Sensitive = true;
+
+		RepeatMenu.RemoveAll ();
+		// Translators: {0} is the name of the effect that will be repeated
+		RepeatMenu.AppendItem (RepeatLastEffect.CreateMenuItem (Translations.GetString ("Repeat {0}", effect.Name)));
 	}
 
 	#region Initialization
@@ -73,6 +101,8 @@ public sealed class EffectsActions
 	{
 		foreach (Command a in Actions)
 			a.Sensitive = sensitive;
+
+		RepeatLastEffect.Sensitive = sensitive && LastEffect is not null;
 	}
 	#endregion
 }

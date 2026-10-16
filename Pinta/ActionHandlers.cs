@@ -51,7 +51,6 @@ public sealed class ActionHandlers
 		action_handlers = [
 			// File
 			new NewDocumentAction (actions, chrome, palette, settings, workspace),
-			new NewScreenshotAction (system, chrome, workspace, actions),
 			new OpenDocumentAction (actions.File, chrome, workspace, recentFiles, imageFormats),
 			new SaveDocumentAction (actions.File, workspace),
 			new SaveDocumentAsAction (actions.File, workspace),
@@ -78,12 +77,8 @@ public sealed class ActionHandlers
 			new RotateZoomLayerAction (chrome, actions.Layers, workspace, tools),
 
 			// View
-			new MenuBarToggledAction (actions.View, chrome),
 			new ToolBarToggledAction (actions.View, chrome),
-			new ImageTabsToggledAction (actions.View, chrome),
-			new ToolWindowsToggledAction (actions.View, chrome),
 			new StatusBarToggledAction (actions.View, chrome),
-			new ToolBoxToggledAction (actions.View, chrome),
 			new ColorSchemeChangedAction (actions.View),
 			new EditCanvasGridAction (actions.View, chrome, canvasGrid),
 

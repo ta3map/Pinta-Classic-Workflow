@@ -335,38 +335,16 @@ public sealed class DocumentLayers
 	}
 
 	/// <summary>
-	/// Moves the current layer down 1 position in the layer collection.
+	/// Moves the layer at index 'from' to index 'to' and makes it the current layer.
 	/// </summary>
-	public void MoveCurrentLayerDown ()
+	public void MoveLayer (int from, int to)
 	{
-		if (CurrentUserLayerIndex == 0)
-			throw new InvalidOperationException ("Cannot move layer down because current layer is the bottom layer.");
+		UserLayer layer = user_layers[from];
 
-		UserLayer layer = CurrentUserLayer;
-		int index = CurrentUserLayerIndex;
-		DeleteLayer (index);
-		Insert (layer, index - 1);
+		DeleteLayer (from);
+		Insert (layer, to);
 
-		SelectedLayerChanged?.Invoke (this, EventArgs.Empty);
-
-		document.Workspace.Invalidate ();
-	}
-
-	/// <summary>
-	/// Moves the current layer up 1 position in the layer collection.
-	/// </summary>
-	public void MoveCurrentLayerUp ()
-	{
-		if (CurrentUserLayerIndex == user_layers.Count)
-			throw new InvalidOperationException ("Cannot move layer up because current layer is the top layer.");
-
-		UserLayer layer = CurrentUserLayer;
-		int index = CurrentUserLayerIndex;
-
-		DeleteLayer (index);
-		Insert (layer, index + 1);
-
-		CurrentUserLayerIndex = index + 1;
+		CurrentUserLayerIndex = to;
 
 		SelectedLayerChanged?.Invoke (this, EventArgs.Empty);
 

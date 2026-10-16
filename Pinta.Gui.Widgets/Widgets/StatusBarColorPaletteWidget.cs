@@ -25,23 +25,20 @@
 // THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Adw;
 using Cairo;
 using Pinta.Core;
 
 namespace Pinta.Gui.Widgets;
 
+/// <summary>
+/// The recently used colors and the current palette.
+/// </summary>
 public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 {
-	private static bool color_picker_active = false;
-
-	private readonly RectangleD primary_rect = new (4, 3, 24, 24);
-	private readonly RectangleD secondary_rect = new (17, 16, 24, 24);
-	private readonly RectangleD swap_rect = new (27, 2, 15, 15);
-	private readonly RectangleD reset_rect = new (2, 27, 15, 15);
+	// The palette is folded into this many bands, one below the other, to keep the widget narrow.
+	private const int BANDS = 2;
 
 	private readonly IChromeService chrome;
 	private readonly IPaletteService palette;
@@ -59,14 +56,15 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 		HasTooltip = true;
 		OnQueryTooltip += HandleQueryTooltip;
 
-		palette.PrimaryColorChanged += new EventHandler (Palette_ColorChanged);
-		palette.SecondaryColorChanged += new EventHandler (Palette_ColorChanged);
-		palette.RecentColorsChanged += new EventHandler (Palette_ColorChanged);
-		palette.CurrentPalette.PaletteChanged += new EventHandler (Palette_ColorChanged);
+		palette.RecentColorsChanged += Palette_ColorChanged;
+		palette.CurrentPalette.PaletteChanged += Palette_ColorChanged;
 
-		HeightRequest = PaletteWidget.WIDGET_HEIGHT;
+		int recent_cols = palette.MaxRecentlyUsedColor / PaletteWidget.PALETTE_ROWS;
+		recent_palette_rect = new RectangleD (0, 1, PaletteWidget.SWATCH_SIZE * recent_cols, PaletteWidget.SWATCH_SIZE * PaletteWidget.PALETTE_ROWS);
 
-		OnResize += (_, e) => HandleSizeAllocated (e);
+		HeightRequest = PaletteWidget.SWATCH_SIZE * PaletteWidget.PALETTE_ROWS * BANDS + 2;
+		UpdateLayout ();
+
 		SetDrawFunc ((area, context, width, height) => Draw (context));
 
 		// Handle mouse clicks.
@@ -81,61 +79,11 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 
 	private async void HandleClick (PointD point, uint button, Gdk.ModifierType state)
 	{
-		var element = GetElementAtPoint (point);
-
-		switch (element) {
-
-			case WidgetElement.PrimaryColor:
-			case WidgetElement.SecondaryColor:
-
-				if (color_picker_active)
-					break;
-
-				color_picker_active = true;
-
-				try {
-					bool primarySelected = element switch {
-						WidgetElement.PrimaryColor => true,
-						WidgetElement.SecondaryColor => false,
-						_ => throw new UnreachableException ()
-					};
-
-					PaletteColors? choices = await RunColorPicker (primarySelected);
-
-					if (choices is null)
-						break;
-
-					if (palette.PrimaryColor != choices.Primary)
-						palette.PrimaryColor = choices.Primary;
-
-					if (palette.SecondaryColor != choices.Secondary)
-						palette.SecondaryColor = choices.Secondary;
-				} finally {
-					color_picker_active = false;
-				}
-
-				break;
-
-			case WidgetElement.SwapColors:
-
-				Color temp = palette.PrimaryColor;
-
-				// Swapping should not trigger adding colors to recently used palette
-				palette.SetColor (true, palette.SecondaryColor, false);
-				palette.SetColor (false, temp, false);
-
-				break;
-
-			case WidgetElement.ResetColors:
-
-				palette.PrimaryColor = new Color (0, 0, 0);
-				palette.SecondaryColor = new Color (1, 1, 1);
-
-				break;
+		switch (GetElementAtPoint (point)) {
 
 			case WidgetElement.Palette:
 
-				int index = PaletteWidget.GetSwatchAtLocation (palette, point, palette_rect);
+				int index = PaletteWidget.GetSwatchAtLocation (palette, point, palette_rect, bands: BANDS);
 
 				if (index < 0)
 					break;
@@ -179,37 +127,9 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 
 	private void Draw (Context g)
 	{
-		const int TILE_SIZE = 16;
+		const int TILE_SIZE = 8;
 		using Pattern checkeredPattern =
 			CairoExtensions.CreateTransparentBackgroundPattern (TILE_SIZE);
-
-		// Draw Secondary color swatch
-
-		if (palette.SecondaryColor.A < 1)
-			g.FillRectangle (secondary_rect, checkeredPattern);
-
-		g.FillRectangle (secondary_rect, palette.SecondaryColor);
-		g.DrawRectangle (new RectangleD (secondary_rect.X + 1, secondary_rect.Y + 1, secondary_rect.Width - 2, secondary_rect.Height - 2), new Color (1, 1, 1), 1);
-		g.DrawRectangle (secondary_rect, new Color (0, 0, 0), 1);
-
-		// Draw Primary color swatch
-
-		if (palette.PrimaryColor.A < 1)
-			g.FillRectangle (primary_rect, checkeredPattern);
-
-		g.FillRectangle (primary_rect, palette.PrimaryColor);
-		g.DrawRectangle (new RectangleD (primary_rect.X + 1, primary_rect.Y + 1, primary_rect.Width - 2, primary_rect.Height - 2), new Color (1, 1, 1), 1);
-		g.DrawRectangle (primary_rect, new Color (0, 0, 0), 1);
-
-		// Draw the swap icon.
-		GetStyleContext ().GetColor (out Gdk.RGBA fg_color);
-		Cairo.Color cairo_fg_color = fg_color.ToCairoColor ();
-		DrawSwapIcon (g, cairo_fg_color);
-
-		// Draw the reset icon.
-		double square_size = 0.6 * reset_rect.Width;
-		g.DrawRectangle (new RectangleD (reset_rect.Location (), square_size, square_size), cairo_fg_color, 1);
-		g.FillRectangle (new RectangleD (reset_rect.Right - square_size, reset_rect.Bottom - square_size, square_size, square_size), cairo_fg_color);
 
 		// Draw recently used color swatches
 		var recent = palette.RecentlyUsedColors;
@@ -230,7 +150,7 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 
 		for (int i = 0; i < currentPalette.Colors.Count; i++) {
 
-			RectangleD swatchBounds = PaletteWidget.GetSwatchBounds (palette, i, palette_rect);
+			RectangleD swatchBounds = PaletteWidget.GetSwatchBounds (palette, i, palette_rect, bands: BANDS);
 			Color paletteColor = currentPalette.Colors[i];
 
 			if (paletteColor.A < 1) // Only draw checkered pattern if there is transparency
@@ -242,63 +162,18 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 		g.Dispose ();
 	}
 
-	private void DrawSwapIcon (Context g, Color color)
+	/// <summary>
+	/// Size the palette area and the widget to fit all the palette colors.
+	/// </summary>
+	private void UpdateLayout ()
 	{
-		const double ARROW_SIZE = 4;
-
-		g.Save ();
-		g.LineWidth = 1.5;
-		g.SetSourceColor (color);
-
-		const double RADIUS = 11;
-		const double OFFSET = 1;
-
-		PointD p1 = new (
-			X: swap_rect.Left + RADIUS,
-			Y: swap_rect.Bottom - OFFSET);
-
-		g.MoveTo (p1.X, p1.Y);
-
-		g.CurveTo (
-			p1.X,
-			p1.Y - RADIUS - 2,
-			p1.X,
-			p1.Y - RADIUS + OFFSET,
-			swap_rect.Left + OFFSET,
-			swap_rect.Bottom - RADIUS);
-
-		g.MoveTo (p1.X - ARROW_SIZE, p1.Y - ARROW_SIZE);
-
-		g.LineTo (p1.X, p1.Y);
-		g.LineTo (p1.X + ARROW_SIZE, p1.Y - ARROW_SIZE);
-
-		PointD p2 = new (
-			X: swap_rect.Left + OFFSET,
-			Y: swap_rect.Bottom - RADIUS);
-
-		g.MoveTo (p2.X + ARROW_SIZE, p2.Y - ARROW_SIZE);
-
-		g.LineTo (p2.X, p2.Y);
-		g.LineTo (p2.X + ARROW_SIZE, p2.Y + ARROW_SIZE);
-
-		g.Stroke ();
-
-		g.Restore ();
-	}
-
-	private void HandleSizeAllocated (Gtk.DrawingArea.ResizeSignalArgs e)
-	{
-		int width = e.Width;
-
-		// Store the bounds allocated for our palette
-		int recent_cols = palette.MaxRecentlyUsedColor / PaletteWidget.PALETTE_ROWS;
-
-		recent_palette_rect = new RectangleD (50, 2, PaletteWidget.SWATCH_SIZE * recent_cols, PaletteWidget.SWATCH_SIZE * PaletteWidget.PALETTE_ROWS);
 		palette_rect = new RectangleD (
 			recent_palette_rect.Right + PaletteWidget.PALETTE_MARGIN,
-			2,
-			width - recent_palette_rect.Right - PaletteWidget.PALETTE_MARGIN,
-			PaletteWidget.SWATCH_SIZE * PaletteWidget.PALETTE_ROWS);
+			1,
+			PaletteWidget.SWATCH_SIZE * PaletteWidget.GetPaletteColumns (palette, BANDS),
+			PaletteWidget.SWATCH_SIZE * PaletteWidget.PALETTE_ROWS * BANDS);
+
+		WidthRequest = (int) palette_rect.Right;
 	}
 
 	/// <summary>
@@ -311,7 +186,7 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 
 		switch (GetElementAtPoint (point)) {
 			case WidgetElement.Palette:
-				if (PaletteWidget.GetSwatchAtLocation (palette, point, palette_rect) >= 0) {
+				if (PaletteWidget.GetSwatchAtLocation (palette, point, palette_rect, bands: BANDS) >= 0) {
 					// Translators: {0} is 'Ctrl', or a platform-specific key such as 'Command' on macOS.
 					text = Translations.GetString ("Left click to set primary color. Right click to set secondary color. Middle click or press {0} and left click to choose palette color.",
 						system.CtrlLabel ());
@@ -322,20 +197,6 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 				if (PaletteWidget.GetSwatchAtLocation (palette, point, recent_palette_rect, true) >= 0)
 					text = Translations.GetString ("Left click to set primary color. Right click to set secondary color.");
 				break;
-			case WidgetElement.PrimaryColor:
-				text = Translations.GetString ("Click to select primary color.");
-				break;
-			case WidgetElement.SecondaryColor:
-				text = Translations.GetString ("Click to select secondary color.");
-				break;
-			case WidgetElement.SwapColors:
-				string label = Translations.GetString ("Click to switch between primary and secondary color.");
-				string shortcut_label = Translations.GetString ("Shortcut key");
-				text = $"{label} {shortcut_label}: {"X"}";
-				break;
-			case WidgetElement.ResetColors:
-				text = Translations.GetString ("Click to reset primary and secondary color.");
-				break;
 		}
 
 		args.Tooltip.SetText (text);
@@ -344,30 +205,13 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 
 	private void Palette_ColorChanged (object? sender, EventArgs e)
 	{
+		UpdateLayout ();
+
 		// Color change events may be received while the widget is minimized,
 		// so we only call Invalidate() if the widget is shown.
 		if (GetRealized ())
 			QueueDraw ();
 	}
-
-	private async Task<PaletteColors?> RunColorPicker (bool primarySelected)
-	{
-		using ColorPickerDialog colorPicker = new (
-			chrome.MainWindow,
-			palette,
-			new PaletteColors (palette.PrimaryColor, palette.SecondaryColor),
-			primarySelected,
-			true,
-			Translations.GetString ("Choose Colors"));
-
-		Gtk.ResponseType response = await colorPicker.RunAsync ();
-
-		if (response != Gtk.ResponseType.Ok)
-			return null;
-
-		return (PaletteColors) colorPicker.Colors;
-	}
-
 
 	private async Task<SingleColor?> GetUserChosenColor (
 		SingleColor colors,
@@ -402,18 +246,6 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 		if (recent_palette_rect.ContainsPoint (point))
 			return WidgetElement.RecentColorsPalette;
 
-		if (primary_rect.ContainsPoint (point))
-			return WidgetElement.PrimaryColor;
-
-		if (secondary_rect.ContainsPoint (point))
-			return WidgetElement.SecondaryColor;
-
-		if (swap_rect.ContainsPoint (point))
-			return WidgetElement.SwapColors;
-
-		if (reset_rect.ContainsPoint (point))
-			return WidgetElement.ResetColors;
-
 		return WidgetElement.Nothing;
 	}
 
@@ -422,9 +254,5 @@ public sealed class StatusBarColorPaletteWidget : Gtk.DrawingArea
 		Nothing,
 		Palette,
 		RecentColorsPalette,
-		PrimaryColor,
-		SecondaryColor,
-		SwapColors,
-		ResetColors,
 	}
 }

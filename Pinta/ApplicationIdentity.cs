@@ -16,7 +16,7 @@ internal static class ApplicationIdentity
 	public static void ApplyBeforeGtkInit ()
 	{
 		GLib.Functions.SetApplicationName (PintaCore.ApplicationDisplayName);
-		TrySetPrgname ("PintaDotNet");
+		TrySetPrgname ("PintaClassicWorkflow");
 	}
 
 	private static void TrySetPrgname (string prgname)

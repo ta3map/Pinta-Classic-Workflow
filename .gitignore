@@ -37,3 +37,9 @@ xdg/pinta.desktop
 xdg/pinta.appdata.xml
 .vs
 .vscode
+
+release-deb/
+release-appimage/
+*.deb
+*.flatpak
+.flatpak-builder/

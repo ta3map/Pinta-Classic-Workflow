@@ -39,6 +39,7 @@ public abstract class ArrowedEditEngine : BaseEditEngine
 
 	private Gtk.SpinButton? arrow_size;
 	private Gtk.Label? arrow_size_label;
+	private Gtk.MenuButton? arrow_size_presets;
 
 	private Gtk.SpinButton? arrow_angle_offset;
 	private Gtk.Label? arrow_angle_offset_label;
@@ -351,6 +352,7 @@ public abstract class ArrowedEditEngine : BaseEditEngine
 	private IEnumerable<Gtk.Widget> GetArrowOptionToolbarItems ()
 	{
 		yield return ArrowSizeLabel;
+		yield return arrow_size_presets ??= GtkExtensions.CreateToolBarPresetsButton (ArrowSize, GtkExtensions.SizePresets);
 		yield return ArrowSize;
 		yield return ArrowAngleOffsetLabel;
 		yield return ArrowAngleOffset;

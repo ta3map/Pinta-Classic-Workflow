@@ -39,11 +39,12 @@ public sealed class ViewActions
 	public Command ActualSize { get; }
 	public ToggleCommand ToolBar { get; }
 	public ToggleCommand ImageTabs { get; }
-	public ToggleCommand ToolWindows { get; }
 	public Command EditCanvasGrid { get; }
-	public ToggleCommand MenuBar { get; }
 	public ToggleCommand StatusBar { get; }
 	public ToggleCommand ToolBox { get; }
+	public ToggleCommand History { get; }
+	public ToggleCommand Layers { get; }
+	public ToggleCommand Colors { get; }
 	public ToggleCommand Rulers { get; }
 	public Gio.SimpleAction RulerMetric { get; }
 	public Gio.SimpleAction ColorScheme { get; }
@@ -71,21 +72,21 @@ public sealed class ViewActions
 			"ZoomIn",
 			Translations.GetString ("Zoom In"),
 			null,
-			Resources.StandardIcons.ValueIncrease,
+			Resources.Icons.ViewZoomIn,
 			shortcuts: ["<Primary>plus", "<Primary>equal", "equal", "<Primary>KP_Add", "KP_Add"]);
 
 		ZoomOut = new Command (
 			"ZoomOut",
 			Translations.GetString ("Zoom Out"),
 			null,
-			Resources.StandardIcons.ValueDecrease,
+			Resources.Icons.ViewZoomOut,
 			shortcuts: ["<Primary>minus", "<Primary>underscore", "minus", "<Primary>KP_Subtract", "KP_Subtract"]);
 
 		ZoomToWindow = new Command (
 			"ZoomToWindow",
 			Translations.GetString ("Best Fit"),
 			null,
-			Resources.StandardIcons.ZoomFitBest,
+			Resources.Icons.ViewZoomWindow,
 			shortcuts: ["<Primary>B"]);
 
 		ZoomToSelection = new Command (
@@ -98,7 +99,7 @@ public sealed class ViewActions
 			"ActualSize",
 			Translations.GetString ("Normal Size"),
 			null,
-			Resources.StandardIcons.ZoomOriginal,
+			Resources.Icons.ViewZoom100,
 			shortcuts: ["<Primary>0", "<Primary><Shift>A"]);
 
 		ToolBar = new ToggleCommand (
@@ -113,23 +114,11 @@ public sealed class ViewActions
 			null,
 			null);
 
-		ToolWindows = new ToggleCommand (
-			"ToolWindows",
-			Translations.GetString ("Tool Windows"),
-			null,
-			null);
-
 		EditCanvasGrid = new Command (
 			"EditCanvasGrid",
 			Translations.GetString ("Canvas Grid..."),
 			null,
 			Resources.Icons.ViewGrid);
-
-		MenuBar = new ToggleCommand (
-			"MenuBar",
-			Translations.GetString ("Menu Bar"),
-			null,
-			null);
 
 		StatusBar = new ToggleCommand (
 			"Statusbar",
@@ -139,9 +128,31 @@ public sealed class ViewActions
 
 		ToolBox = new ToggleCommand (
 			"ToolBox",
-			Translations.GetString ("Tool Box"),
+			Translations.GetString ("Tools"),
 			null,
-			null);
+			Resources.Icons.ToolPaintBrush,
+			shortcuts: ["F5"]);
+
+		History = new ToggleCommand (
+			"HistoryPad",
+			Translations.GetString ("History"),
+			null,
+			Resources.Icons.MenuHistory,
+			shortcuts: ["F6"]);
+
+		Layers = new ToggleCommand (
+			"LayersPad",
+			Translations.GetString ("Layers"),
+			null,
+			Resources.Icons.LayerProperties,
+			shortcuts: ["F7"]);
+
+		Colors = new ToggleCommand (
+			"ColorsPad",
+			Translations.GetString ("Colors"),
+			null,
+			Resources.Icons.AdjustmentsHueSaturation,
+			shortcuts: ["F8"]);
 
 		Rulers = new ToggleCommand (
 			"Rulers",
@@ -172,9 +183,11 @@ public sealed class ViewActions
 		// The toolbar is shown by default.
 		ToolBar.Value = true;
 		ImageTabs.Value = true;
-		ToolWindows.Value = true;
 		StatusBar.Value = true;
 		ToolBox.Value = true;
+		History.Value = true;
+		Layers.Value = true;
+		Colors.Value = true;
 
 		this.chrome = chrome;
 		this.workspace = workspace;
@@ -231,11 +244,12 @@ public sealed class ViewActions
 
 		Gio.Menu show_hide_menu = Gio.Menu.New ();
 		show_hide_menu.AppendItem (Rulers.CreateMenuItem ());
-		show_hide_menu.AppendItem (MenuBar.CreateMenuItem ());
 		show_hide_menu.AppendItem (StatusBar.CreateMenuItem ());
 		show_hide_menu.AppendItem (ToolBox.CreateMenuItem ());
+		show_hide_menu.AppendItem (History.CreateMenuItem ());
+		show_hide_menu.AppendItem (Layers.CreateMenuItem ());
+		show_hide_menu.AppendItem (Colors.CreateMenuItem ());
 		show_hide_menu.AppendItem (ImageTabs.CreateMenuItem ());
-		show_hide_menu.AppendItem (ToolWindows.CreateMenuItem ());
 		if (mainToolbarPresent) show_hide_menu.AppendItem (ToolBar.CreateMenuItem ());
 
 		Gio.Menu show_hide_section = Gio.Menu.New ();
@@ -266,11 +280,12 @@ public sealed class ViewActions
 			Fullscreen,
 			EditCanvasGrid,
 			Rulers,
-			MenuBar,
 			StatusBar,
 			ToolBox,
+			History,
+			Layers,
+			Colors,
 			ImageTabs,
-			ToolWindows,
 		]);
 
 		// TODO: Make `Command`s

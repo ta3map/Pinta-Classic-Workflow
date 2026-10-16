@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
 
-APP_NAME="${APP_NAME:-Pinta.NET}"
+APP_NAME="${APP_NAME:-PintaClassicWorkflow}"
 APP_EXECUTABLE="${APP_EXECUTABLE:-Pinta}"
-APP_BUNDLE_ID="${APP_BUNDLE_ID:-io.github.TandyColorComputer3.PintaDotNet}"
+APP_BUNDLE_ID="${APP_BUNDLE_ID:-io.github.ta3map.PintaClassicWorkflow}"
 APP_VERSION="${APP_VERSION:-3.2}"
 APP_ICON_FILE="${APP_ICON_FILE:-pinta.icns}"
-DMG_BASENAME="${DMG_BASENAME:-PintaDotNet}"
+DMG_BASENAME="${DMG_BASENAME:-PintaClassicWorkflow}"
 MAC_CODESIGN_IDENTITY="${MAC_CODESIGN_IDENTITY:-Developer ID Application: Cameron White (D5G6C56TBH)}"
 MAC_NOTARY_APPLE_ID="${MAC_NOTARY_APPLE_ID:-cameronwhite91@gmail.com}"
 MAC_NOTARY_PASSWORD="${MAC_NOTARY_PASSWORD:-${MAC_DEV_PASSWORD}}"

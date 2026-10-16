@@ -59,11 +59,11 @@ public sealed class AddinSetupService : SetupService
 	public void RegisterRepositories (bool enable)
 	{
 		RegisterRepository (GetPlatformRepositoryUrl (),
-				    Translations.GetString ("Community add-ins — platform-specific (may target original Pinta)"),
+				    Translations.GetString ("Pinta Community Addins - Platform-Specific"),
 				    enable);
 
 		RegisterRepository (GetAllRepositoryUrl (),
-				    Translations.GetString ("Community add-ins — cross-platform (may target original Pinta)"),
+				    Translations.GetString ("Pinta Community Addins - Cross-Platform"),
 				    enable);
 	}
 

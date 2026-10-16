@@ -53,11 +53,31 @@ internal sealed class OpenDocumentAction : IActionHandler
 	void IActionHandler.Initialize ()
 	{
 		file.Open.Activated += Activated;
+		file.OpenRecent.OnActivate += OpenRecentActivated;
 	}
 
 	void IActionHandler.Uninitialize ()
 	{
 		file.Open.Activated -= Activated;
+		file.OpenRecent.OnActivate -= OpenRecentActivated;
+	}
+
+	private void OpenRecentActivated (Gio.SimpleAction sender, Gio.SimpleAction.ActivateSignalArgs args)
+	{
+		OpenFile (Gio.FileHelper.NewForUri (args.Parameter!.GetString (out _)));
+	}
+
+	private void OpenFile (Gio.File file)
+	{
+		if (!workspace.OpenFile (file))
+			return;
+
+		recent_files.AddFile (file);
+
+		Gio.File? directory = file.GetParent ();
+
+		if (directory is not null)
+			recent_files.LastDialogDirectory = directory;
 	}
 
 	private async void Activated (object sender, EventArgs e)
@@ -82,18 +102,8 @@ internal sealed class OpenDocumentAction : IActionHandler
 		if (selection is null)
 			return;
 
-		foreach (var file in selection) {
-
-			if (!workspace.OpenFile (file))
-				continue;
-
-			recent_files.AddFile (file);
-
-			Gio.File? directory = file.GetParent ();
-
-			if (directory is not null)
-				recent_files.LastDialogDirectory = directory;
-		}
+		foreach (var file in selection)
+			OpenFile (file);
 	}
 
 	private static Gtk.FileFilter CreateCatchAllFilter ()

@@ -67,7 +67,7 @@ public sealed class LivePreviewManager : ILivePreview
 	public RectangleI RenderBounds { get; private set; }
 	public bool IsEnabled { get; private set; }
 
-	public async void Start (BaseEffect effect)
+	public async void Start (BaseEffect effect, bool showDialog = true)
 	{
 		if (IsEnabled)
 			throw new InvalidOperationException ("LivePreviewManager.Start() called while live preview is already enabled.");
@@ -139,7 +139,7 @@ public sealed class LivePreviewManager : ILivePreview
 				}
 			);
 
-			bool userConfirmed = !effect.IsConfigurable || await effect.LaunchConfiguration ();
+			bool userConfirmed = !showDialog || !effect.IsConfigurable || await effect.LaunchConfiguration ();
 
 			chrome.MainWindowBusy = true;
 

@@ -42,6 +42,7 @@ public sealed class RoundedLineEditEngine : BaseEditEngine
 
 	// NRT - Created in HandleBuildToolBar
 	private Gtk.SpinButton radius = null!;
+	private Gtk.MenuButton? radius_presets;
 	private Gtk.Label radius_label = null!;
 	private Gtk.Separator radius_sep = null!;
 
@@ -101,6 +102,9 @@ public sealed class RoundedLineEditEngine : BaseEditEngine
 				Radius = Radius;
 			};
 		}
+
+		radius_presets ??= GtkExtensions.CreateToolBarPresetsButton (radius, GtkExtensions.SizePresets);
+		tb.Append (radius_presets);
 
 		tb.Append (radius);
 	}

@@ -61,12 +61,12 @@ internal sealed class AboutDialogAction : IActionHandler
 	{
 		using Adw.AboutWindow dialog = Adw.AboutWindow.New ();
 		dialog.TransientFor = chrome.MainWindow;
-		dialog.Title = Translations.GetString ("About Pinta.NET");
+		dialog.Title = Translations.GetString ("About Pinta Classic Workflow");
 		dialog.ApplicationName = PintaCore.ApplicationDisplayName;
 		dialog.ApplicationIcon = Icons.Pinta;
 		dialog.Version = application_version;
 		dialog.Website = PintaCore.ForkHomepageUrl;
-		dialog.Comments = Translations.GetString ("Pinta.NET is a community fork of Pinta with a reimagined user interface. It is not the official Pinta application.\n\nReport bugs and ask for help only via the Pinta.NET project (see Help). Do not use the upstream Pinta issue tracker or forums for this program.\n\nEasily create and edit images.");
+		dialog.Comments = Translations.GetString ("Pinta Classic Workflow is a fork of Pinta that brings its look and behavior as close as possible to Paint.NET. It is not the official Pinta application.\n\nReport bugs and ask for help only via the Pinta Classic Workflow project (see Help). Do not use the upstream Pinta issue tracker or forums for this program.");
 		dialog.Copyright = BuildCopyrightText ();
 		dialog.License = BuildLicenseText ();
 		dialog.Developers = authors;
@@ -79,7 +79,7 @@ internal sealed class AboutDialogAction : IActionHandler
 	private static string BuildCopyrightText ()
 	{
 		string copyrightText = Translations.GetString ("Copyright");
-		string contributorsText = Translations.GetString ("by Pinta contributors; Pinta.NET fork");
+		string contributorsText = Translations.GetString ("by Pinta contributors and ta3map");
 		return $"{copyrightText} (c) 2010-2026 {contributorsText}";
 	}
 
@@ -87,7 +87,7 @@ internal sealed class AboutDialogAction : IActionHandler
 	{
 		StringBuilder sb = new ();
 
-		sb.AppendLine (Translations.GetString ("Pinta.NET is an independent fork based on the open source Pinta codebase. It is not produced or endorsed by the upstream Pinta project."));
+		sb.AppendLine (Translations.GetString ("Pinta Classic Workflow is an independent fork of the open source Pinta codebase. It is not produced or endorsed by the upstream Pinta project."));
 		sb.AppendLine ();
 		sb.AppendFormat ("{0}:\n", Translations.GetString ("License"));
 		sb.AppendLine (Translations.GetString ("Released under the MIT X11 License."));
@@ -102,6 +102,7 @@ internal sealed class AboutDialogAction : IActionHandler
 		sb.AppendLine ("Fugue - http://pinvoke.com/");
 		sb.AppendLine ("Google Material Icons - https://github.com/google/material-design-icons");
 		sb.AppendLine ("Microsoft Fluent UI System Icons - https://github.com/microsoft/fluentui-system-icons");
+		sb.AppendLine ("Humanity icon theme (GPL v2) - https://launchpad.net/humanity");
 		sb.AppendLine ("Pinta contributors");
 
 		return sb.ToString ();

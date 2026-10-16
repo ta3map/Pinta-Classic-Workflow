@@ -82,7 +82,7 @@ public sealed class TgaExporter : IImageExporter
 	/// GDK incorrectly identifies the mime type as image/x-win-bitmap if the idLength
 	/// value is 0 (see bug #987641).
 	/// </summary>
-	private const string ImageIdField = "Created by Pinta.NET";
+	private const string ImageIdField = "Created by Pinta";
 
 	// For now, we only export in uncompressed ARGB32 format. If someone requests this functionality,
 	// we can always add more through an export dialog.

@@ -25,17 +25,31 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Gtk;
 
 namespace Pinta.Core;
 
 public sealed class RecentFileManager
 {
-	private Gio.File? last_dialog_directory;
+	private const int MAX_RECENT_FILES = 10;
+	private const string RECENT_FILES_SETTING = "recent-files";
 
-	public RecentFileManager ()
+	private Gio.File? last_dialog_directory;
+	private List<string> recent_uris;
+
+	/// <summary>
+	/// Menu of recently used files, whose items activate "app.openRecent" with the file's URI.
+	/// </summary>
+	public Gio.Menu Menu { get; } = Gio.Menu.New ();
+
+	public RecentFileManager (ISettingsService settings)
 	{
 		last_dialog_directory = DefaultDialogDirectory;
+		recent_uris = [.. settings.GetSetting (RECENT_FILES_SETTING, string.Empty).Split ('\n', StringSplitOptions.RemoveEmptyEntries)];
+		settings.SaveSettingsBeforeQuit += (_, _) => settings.PutSetting (RECENT_FILES_SETTING, string.Join ('\n', recent_uris));
+		RebuildMenu ();
 	}
 
 	public Gio.File? LastDialogDirectory {
@@ -69,6 +83,20 @@ public sealed class RecentFileManager
 	/// </summary>
 	public void AddFile (Gio.File file)
 	{
-		RecentManager.GetDefault ().AddItem (file.GetUri ());
+		string uri = file.GetUri ();
+		RecentManager.GetDefault ().AddItem (uri);
+		recent_uris = [uri, .. recent_uris.Where (u => u != uri).Take (MAX_RECENT_FILES - 1)];
+		RebuildMenu ();
+	}
+
+	private void RebuildMenu ()
+	{
+		Menu.RemoveAll ();
+		foreach (string uri in recent_uris) {
+			// Menu labels treat '_' as a mnemonic marker.
+			Gio.MenuItem item = Gio.MenuItem.New (Gio.FileHelper.NewForUri (uri).GetParseName ().Replace ("_", "__"), null);
+			item.SetActionAndTargetValue ("app.openRecent", GLib.Variant.NewString (uri));
+			Menu.AppendItem (item);
+		}
 	}
 }

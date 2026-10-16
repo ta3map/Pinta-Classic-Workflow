@@ -30,11 +30,6 @@ using Pinta.Core;
 
 namespace Pinta.Docking;
 
-public sealed class TabClosedEventArgs (IDockNotebookItem item) : CancelEventArgs
-{
-	public IDockNotebookItem Item { get; } = item;
-}
-
 public sealed class TabEventArgs (IDockNotebookItem? item) : EventArgs
 {
 	public IDockNotebookItem? Item { get; } = item;
@@ -43,7 +38,6 @@ public sealed class TabEventArgs (IDockNotebookItem? item) : EventArgs
 public sealed class DockNotebook : Gtk.Box
 {
 	private readonly Adw.TabView tab_view;
-	private readonly Adw.TabBar tab_bar;
 	private readonly HashSet<IDockNotebookItem> items = [];
 
 	public DockNotebook ()
@@ -52,25 +46,16 @@ public sealed class DockNotebook : Gtk.Box
 			Vexpand = true,
 			Valign = Gtk.Align.Fill,
 		};
-		tabView.OnClosePage += TabView_OnClosePage;
-
-		Adw.TabBar tabBar = new ();
-		tabBar.SetView (tabView);
-		tabBar.Autohide = true;
-		tabBar.AddCssClass (AdwaitaStyles.Inline);
-		tabBar.ExpandTabs = true;
 
 		// --- Initialization (Gtk.Box)
 
 		SetOrientation (Gtk.Orientation.Vertical);
 
-		Append (tabBar);
 		Append (tabView);
 
 		// --- References to keep
 
 		tab_view = tabView;
-		tab_bar = tabBar;
 
 		// --- Further initialization
 
@@ -85,32 +70,6 @@ public sealed class DockNotebook : Gtk.Box
 		ActiveTabChanged?.Invoke (this, new TabEventArgs (item));
 	}
 
-	private bool TabView_OnClosePage (Adw.TabView _, Adw.TabView.ClosePageSignalArgs args)
-	{
-		// Prompt the user to save unsaved changes before closing.
-
-		Adw.TabPage page = args.Page;
-
-		IDockNotebookItem item = FindItemForPage (page)!;
-
-		TabClosedEventArgs close_args = new (item);
-
-		TabClosed?.Invoke (this, close_args);
-
-		tab_view.ClosePageFinish (page, !close_args.Cancel);
-
-		if (!close_args.Cancel)
-			items.Remove (item);
-
-		// Prevent the default close handler from running.
-		return Gdk.Constants.EVENT_STOP;
-	}
-
-	/// <summary>
-	/// Emitted when a tab is closed by the user.
-	/// </summary>
-	public event EventHandler<TabClosedEventArgs>? TabClosed;
-
 	/// <summary>
 	/// Emitted when switching to a different tab.
 	/// </summary>
@@ -120,19 +79,6 @@ public sealed class DockNotebook : Gtk.Box
 	/// The items currently in the notebook.
 	/// </summary>
 	public IEnumerable<IDockNotebookItem> Items => items;
-
-	/// <summary>
-	/// Whether to show the tab bar.
-	/// </summary>
-	public bool EnableTabs {
-		get => tab_bar.IsVisible ();
-		set {
-			if (value)
-				tab_bar.Show ();
-			else
-				tab_bar.Hide ();
-		}
-	}
 
 	/// <summary>
 	/// Returns the active notebook item.

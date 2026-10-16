@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 **Description**
-Describe the change or improvement that you'd like to see for **Pinta.NET** (this fork — not upstream Pinta).
+Describe the change or improvement that you'd like to see.
 
 **Additional context**
 Add any other context or screenshots about the feature request here.

@@ -120,11 +120,11 @@
 	<key>CFBundleIconFile</key>
 	<string>pinta.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>io.github.TandyColorComputer3.PintaDotNet</string>
+	<string>io.github.ta3map.PintaClassicWorkflow</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Pinta.NET</string>
+	<string>Pinta Classic Workflow</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

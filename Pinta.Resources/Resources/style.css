@@ -1,5 +1,28 @@
+/* Square corners everywhere, in the style of Windows 7; only radio buttons and slider knobs stay round. */
+* {
+    border-radius: 0;
+}
+
+radio,
+scale slider {
+    border-radius: 100%;
+}
+
 .tool-box-button {
-    -gtk-icon-size: 2rem;
+    -gtk-icon-size: 1.333rem;
+    padding: 3px;
+    min-width: 0;
+    min-height: 0;
+}
+
+.tool-box flowboxchild {
+    padding: 0;
+}
+
+.thumbnail-button {
+    padding: 1px;
+    min-height: 0;
+    min-width: 0;
 }
 
 .tool-bar-scale {
@@ -9,4 +32,19 @@
 
 #canvas {
     box-shadow: 0px 0px 2px 2px #7F7F7F;
+}
+
+.floating-pad {
+    background-color: alpha(@window_bg_color, 0.92);
+    box-shadow: 0px 2px 8px alpha(black, 0.35);
+}
+
+.floating-pad-header {
+    padding: 2px;
+}
+
+popover.menu modelbutton image {
+    min-width: 16px;
+    min-height: 16px;
+    margin-right: 6px;
 }

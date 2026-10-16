@@ -60,6 +60,14 @@ public sealed class ImageConverterManager
 			supportsLayers: true);
 		yield return oraFormatDescriptor;
 
+		yield return new FormatDescriptor (
+			displayPrefix: "Paint.NET",
+			extensions: ["pdn", "PDN"],
+			mimes: ["image/x-paintnet"],
+			importer: new PdnFormat (),
+			exporter: null,
+			supportsLayers: true);
+
 		NetpbmPortablePixmap netpbmPortablePixmap = new ();
 		FormatDescriptor netpbmPortablePixmapDescriptor = new (
 			displayPrefix: "Netpbm Portable Pixmap",

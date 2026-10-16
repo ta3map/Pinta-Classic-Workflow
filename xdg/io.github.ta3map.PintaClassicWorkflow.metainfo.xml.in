@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>io.github.ta3map.PintaClassicWorkflow</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Pinta Classic Workflow</name>
+  <summary>Image editor that looks and behaves like Paint.NET</summary>
+  <description>
+    <_p>
+      Pinta Classic Workflow is a fork of the Pinta image editor whose goal is to bring its
+      look and behavior as close as possible to Paint.NET: a classic menu bar with colored icons,
+      floating tool windows, a Paint.NET-style color wheel and the familiar tool order.
+    </_p>
+    <_p>
+      It keeps the drawing tools, layers, adjustments, effects and add-in support of Pinta.
+      It is not the official Pinta application; please report bugs on the project page.
+    </_p>
+  </description>
+  <launchable type="desktop-id">io.github.ta3map.PintaClassicWorkflow.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/ta3map/Pinta-Classic-Workflow/master/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+  <kudos>
+    <kudo>HiDpiIcon</kudo>
+  </kudos>
+  <developer id="io.github.ta3map">
+    <name>ta3map</name>
+  </developer>
+  <url type="homepage">https://github.com/ta3map/Pinta-Classic-Workflow</url>
+  <url type="bugtracker">https://github.com/ta3map/Pinta-Classic-Workflow/issues</url>
+  <url type="vcs-browser">https://github.com/ta3map/Pinta-Classic-Workflow</url>
+  <content_rating type="oars-1.1" />
+  <translation type="gettext">pinta</translation>
+  <provides>
+    <binary>pinta</binary>
+  </provides>
+  <releases>
+    <release version="3.2" date="2026-10-16">
+      <description>
+        <p>First release of Pinta Classic Workflow.</p>
+      </description>
+    </release>
+  </releases>
+</component>

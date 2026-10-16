@@ -422,7 +422,7 @@ public sealed class WorkspaceManager : IWorkspaceService
 		StringBuilder body = new ();
 
 		body.AppendLine (Translations.GetString ("Could not open file: {0}", filename));
-		body.AppendLine (Translations.GetString ("Pinta.NET supports the following file formats:"));
+		body.AppendLine (Translations.GetString ("Pinta supports the following file formats:"));
 
 		var extensions =
 			from format in image_formats.Formats

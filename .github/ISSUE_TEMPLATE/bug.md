@@ -17,6 +17,4 @@ Steps to reproduce the issue.
 If applicable, add a screenshot or attach an example file that demonstrates the issue.
 
 **Version**
-Please include your operating system (e.g. Ubuntu 24.04 / macOS 15 / Windows 11) and which **Pinta.NET** version you built or installed (Help → About).
-
-**Reminder:** This tracker is only for **Pinta.NET**. If you use official [Pinta](https://github.com/PintaProject/Pinta), report there instead.
+Please include your operating system (e.g. Ubuntu 22.04) and which version of Pinta (e.g. 2.1) you are using.

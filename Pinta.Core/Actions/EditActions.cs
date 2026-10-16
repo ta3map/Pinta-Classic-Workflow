@@ -155,7 +155,7 @@ public sealed class EditActions
 			"selectall",
 			Translations.GetString ("Select All"),
 			null,
-			Resources.StandardIcons.EditSelectAll,
+			Resources.Icons.EditSelectAll,
 			shortcuts: ["<Primary>A"]);
 
 		Deselect = new Command (
@@ -163,7 +163,7 @@ public sealed class EditActions
 			Translations.GetString ("Deselect All"),
 			null,
 			Resources.Icons.EditSelectionNone,
-			shortcuts: ["<Primary><Shift>A", "<Ctrl>D"]);
+			shortcuts: ["<Primary><Shift>A", "<Ctrl>D", "Escape"]);
 
 		LoadPalette = new Command (
 			"loadpalette",
@@ -181,7 +181,7 @@ public sealed class EditActions
 			"resetpalette",
 			Translations.GetString ("Reset to Default"),
 			null,
-			Resources.StandardIcons.DocumentRevert);
+			Resources.Icons.MenuRevert);
 
 		ResizePalette = new Command (
 			"resizepalette",
@@ -333,7 +333,7 @@ public sealed class EditActions
 
 		SelectionHistoryItem hist = new (
 			workspace,
-			Resources.StandardIcons.EditSelectAll,
+			Resources.Icons.EditSelectAll,
 			Translations.GetString ("Select All"));
 
 		hist.TakeSnapshot ();

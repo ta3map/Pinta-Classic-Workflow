@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-APP_NAME="${APP_NAME:-PintaDotNet}"
-APP_DISPLAY_NAME="${APP_DISPLAY_NAME:-Pinta.NET}"
-APP_ID="${APP_ID:-io.github.TandyColorComputer3.PintaDotNet}"
+APP_NAME="${APP_NAME:-PintaClassicWorkflow}"
+APP_DISPLAY_NAME="${APP_DISPLAY_NAME:-Pinta Classic Workflow}"
+APP_ID="${APP_ID:-io.github.ta3map.PintaClassicWorkflow}"
 RUNTIME_ID="${RUNTIME_ID:-linux-x64}"
 BUILD_CONFIGURATION="${BUILD_CONFIGURATION:-Release}"
 VERSION="${VERSION:-0.1}"

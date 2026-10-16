@@ -43,26 +43,26 @@ public sealed class HelpActions
 	{
 		Contents = new Command (
 			"contents",
-			Translations.GetString ("User guide (legacy Pinta)"),
+			Translations.GetString ("Contents"),
 			null,
-			Resources.StandardIcons.HelpBrowser,
+			Resources.Icons.MenuHelp,
 			shortcuts: ["F1"]);
 
 		Website = new Command (
 			"website",
-			Translations.GetString ("Pinta.NET on GitHub"),
+			Translations.GetString ("Pinta Website"),
 			null,
 			Resources.Icons.HelpWebsite);
 
 		Bugs = new Command (
 			"bugs",
-			Translations.GetString ("Report a Pinta.NET Issue"),
+			Translations.GetString ("File a Bug"),
 			null,
 			Resources.Icons.HelpBug);
 
 		Translate = new Command (
 			"translate",
-			Translations.GetString ("Translate original Pinta"),
+			Translations.GetString ("Translate This Application"),
 			null,
 			Resources.Icons.HelpTranslate);
 
@@ -109,7 +109,7 @@ public sealed class HelpActions
 
 	private async void DisplayHelp (object sender, EventArgs e)
 	{
-		await system.LaunchUri (PintaCore.LegacyPintaUserGuideUrl);
+		await system.LaunchUri ("https://pinta-project.com/user-guide");
 	}
 
 	private async void Translate_Activated (object sender, EventArgs e)

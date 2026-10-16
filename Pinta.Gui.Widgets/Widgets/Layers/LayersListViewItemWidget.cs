@@ -151,10 +151,20 @@ public sealed class LayersListViewItemWidget : Gtk.Box
 		menuGesture.SetButton (Gdk.Constants.BUTTON_SECONDARY);
 		menuGesture.OnPressed += MenuGesture_OnPressed;
 
+		Gtk.DragSource dragSource = Gtk.DragSource.New ();
+		dragSource.Actions = Gdk.DragAction.Move;
+		dragSource.OnPrepare += HandleDragPrepare;
+		dragSource.OnDragBegin += (source, _) => source.SetIcon (Gtk.WidgetPaintable.New (this), 0, 0);
+
+		Gtk.DropTarget dropTarget = Gtk.DropTarget.New (GObject.Type.String, Gdk.DragAction.Move);
+		dropTarget.OnDrop += HandleDrop;
+
 		// --- Initialization (Gtk.Widget)
 
 		this.SetAllMargins (2);
 		this.AddController (menuGesture);
+		this.AddController (dragSource);
+		this.AddController (dropTarget);
 
 		// --- Initialization (Gtk.Box)
 
@@ -211,6 +221,31 @@ public sealed class LayersListViewItemWidget : Gtk.Box
 		Gtk.PopoverMenu popover = Gtk.PopoverMenu.NewFromModel (menu);
 		popover.SetParent (this);
 		popover.Popup ();
+	}
+
+	private int LayerIndex () => PintaCore.Workspace.ActiveDocument.Layers.IndexOf (item!.UserLayer!);
+
+	private Gdk.ContentProvider HandleDragPrepare (
+		Gtk.DragSource _,
+		Gtk.DragSource.PrepareSignalArgs args)
+	{
+		GObject.Value value = new (GObject.Type.String);
+		value.SetString (LayerIndex ().ToString ());
+		return Gdk.ContentProvider.NewForValue (value);
+	}
+
+	private bool HandleDrop (
+		Gtk.DropTarget _,
+		Gtk.DropTarget.DropSignalArgs args)
+	{
+		int from = int.Parse (args.Value.GetString ()!);
+		int to = LayerIndex ();
+
+		if (from == to)
+			return false;
+
+		PintaCore.Actions.Layers.MoveLayer (from, to);
+		return true;
 	}
 
 	/// <summary>

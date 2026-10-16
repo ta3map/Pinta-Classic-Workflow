@@ -1,4 +1,4 @@
-#define ProductName "Pinta.NET"
+#define ProductName "Pinta Classic Workflow"
 #define InternalExeName "Pinta"
 #define ProductVersion "3.2"
 
@@ -10,10 +10,10 @@
 [Setup]
 ; Adds option to skip creating start menu entries
 AllowNoIcons=yes
-AppId=C0BCDEDA-62E7-4A43-8435-58323E096912
+AppId=0DE8F370-7644-4991-9E3C-CACD4E00ED40
 AppName={#ProductName}
-AppPublisher=Pinta.NET (community fork)
-AppPublisherURL=https://github.com/TandyColorComputer3/Pinta-dotNet
+AppPublisher=ta3map
+AppPublisherURL=https://github.com/ta3map/Pinta-Classic-Workflow
 AppVerName={#ProductName} {#ProductVersion}
 AppVersion={#ProductVersion}
 ArchitecturesAllowed={#ProductArch}
@@ -22,7 +22,7 @@ Compression=lzma2
 DefaultDirName={autopf}\{#ProductName}
 DefaultGroupName={#ProductName}
 LicenseFile=installer\windows\license.rtf
-OutputBaseFilename=Pinta.NET-{#ProductVersion}-Setup
+OutputBaseFilename=PintaClassicWorkflow-{#ProductVersion}-Setup
 OutputDir=installer\windows
 ; Allow installing for all users or only the current user
 PrivilegesRequiredOverridesAllowed=dialog

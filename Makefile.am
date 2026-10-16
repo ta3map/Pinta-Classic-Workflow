@@ -65,8 +65,8 @@ list:
 
 #target: updatepotfiles - update the POTFILES.in file
 updatepotfiles:
-	echo xdg/io.github.TandyColorComputer3.PintaDotNet.desktop.in > po/POTFILES.in
-	echo xdg/io.github.TandyColorComputer3.PintaDotNet.metainfo.xml.in >> po/POTFILES.in
+	echo xdg/io.github.ta3map.PintaClassicWorkflow.desktop.in > po/POTFILES.in
+	echo xdg/io.github.ta3map.PintaClassicWorkflow.metainfo.xml.in >> po/POTFILES.in
 	find \
 		Pinta \
 		Pinta.Core \

@@ -49,24 +49,17 @@ public static class PintaCore
 	/// Unique identifier for the application.
 	/// This is used for GApplication and also must match the .desktop file.
 	/// </summary>
-	public const string ApplicationId = "io.github.TandyColorComputer3.PintaDotNet";
+	public const string ApplicationId = "io.github.ta3map.PintaClassicWorkflow";
 
 	/// <summary>
 	/// Name shown in menus, window titles, and the command line help header.
 	/// </summary>
-	public const string ApplicationDisplayName = "Pinta.NET";
+	public const string ApplicationDisplayName = "Pinta Classic Workflow";
 
-	public const string ForkHomepageUrl = "https://github.com/TandyColorComputer3/Pinta-dotNet";
-	public const string ForkIssuesUrl = "https://github.com/TandyColorComputer3/Pinta-dotNet/issues";
-	public const string ForkDiscussionsUrl = "https://github.com/TandyColorComputer3/Pinta-dotNet/discussions";
-	public const string ForkReadmeUrl = "https://github.com/TandyColorComputer3/Pinta-dotNet/blob/main/readme.md";
-
-	/// <summary>
-	/// Legacy user guide for original Pinta (reference only — not Pinta.NET support).
-	/// </summary>
-	public const string LegacyPintaUserGuideUrl = "https://pinta-project.com/user-guide";
-
-	public const string UpstreamPintaWebsiteUrl = "https://www.pinta-project.com";
+	public const string ForkHomepageUrl = "https://github.com/ta3map/Pinta-Classic-Workflow";
+	public const string ForkIssuesUrl = "https://github.com/ta3map/Pinta-Classic-Workflow/issues";
+	public const string ForkDiscussionsUrl = "https://github.com/ta3map/Pinta-Classic-Workflow/discussions";
+	public const string ForkReadmeUrl = "https://github.com/ta3map/Pinta-Classic-Workflow/blob/master/readme.md";
 
 	/// <summary>
 	/// The current version number (shared with the add-in ABI).
@@ -90,7 +83,7 @@ public static class PintaCore
 		ChromeManager chrome = new ();
 		PaintBrushManager paintBrushes = new ();
 		PaletteFormatManager paletteFormats = new ();
-		RecentFileManager recentFiles = new ();
+		RecentFileManager recentFiles = new (settings);
 
 		// --- Services that depend on other services
 

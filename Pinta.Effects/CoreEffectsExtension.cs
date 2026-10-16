@@ -30,8 +30,8 @@ using Pinta.Core;
 
 [assembly: Addin ("DefaultEffects", PintaCore.ApplicationVersion, Category = "Core")]
 [assembly: AddinName ("Default Effects")]
-[assembly: AddinDescription ("The default adjustments and effects that ship with Pinta.NET")]
-[assembly: AddinDependency ("Pinta.NET", PintaCore.ApplicationVersion)]
+[assembly: AddinDescription ("The default adjustments and effects that ship with Pinta")]
+[assembly: AddinDependency ("Pinta", PintaCore.ApplicationVersion)]
 [assembly: AddinFlags (Mono.Addins.Description.AddinFlags.Hidden | Mono.Addins.Description.AddinFlags.CantUninstall)]
 
 namespace Pinta.Effects;

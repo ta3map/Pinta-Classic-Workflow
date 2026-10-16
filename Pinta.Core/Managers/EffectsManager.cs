@@ -54,6 +54,8 @@ public sealed class EffectsManager
 		action_manager = actionManager;
 		chrome_manager = chromeManager;
 		live_preview_manager = livePreviewManager;
+
+		action_manager.Effects.RepeatLastEffect.Activated += (_, _) => live_preview_manager.Start (action_manager.Effects.LastEffect!, showDialog: false);
 	}
 
 	/// <summary>
@@ -118,7 +120,10 @@ public sealed class EffectsManager
 			effect.Icon);
 
 		chrome_manager.Application.AddCommand (action);
-		action.Activated += (o, args) => live_preview_manager.Start (effect);
+		action.Activated += (o, args) => {
+			action_manager.Effects.SetLastEffect (effect);
+			live_preview_manager.Start (effect);
+		};
 
 		action_manager.Effects.AddEffect (effect.EffectMenuCategory, action);
 

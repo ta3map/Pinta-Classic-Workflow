@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);SYSLIB5005</NoWarn>
   </PropertyGroup>
 
   <Import Project="../properties/ReferenceGirCoreAdw1.props" />
@@ -10,6 +11,7 @@
     <PackageReference Include="NGettext" />
     <PackageReference Include="ParagonClipper" />
     <PackageReference Include="Mono.Addins" />
+    <PackageReference Include="System.Formats.Nrbf" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Pinta.Resources\Pinta.Resources.csproj" />

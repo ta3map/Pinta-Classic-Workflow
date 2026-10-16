@@ -13,11 +13,12 @@ internal static class SettingNames
 	internal const string WINDOW_SIZE_HEIGHT = "window-size-height";
 	internal const string RULER_SHOWN = "ruler-shown";
 	internal const string IMAGE_TABS_SHOWN = "image-tabs-shown";
-	internal const string TOOL_WINDOWS_SHOWN = "tool-windows-shown";
 	internal const string TOOLBAR_SHOWN = "toolbar-shown";
-	internal const string MENUBAR_SHOWN = "menubar-shown";
 	internal const string STATUSBAR_SHOWN = "statusbar-shown";
 	internal const string TOOLBOX_SHOWN = "toolbox-shown";
+	internal const string HISTORY_SHOWN = "history-shown";
+	internal const string LAYERS_SHOWN = "layers-shown";
+	internal const string COLORS_SHOWN = "colors-shown";
 	internal const string LAST_DIALOG_DIRECTORY = "last-dialog-directory";
 	internal const string LAST_SELECTED_TOOL = "last-selected-tool";
 

@@ -78,6 +78,7 @@ public abstract class BaseEditEngine
 	protected Gtk.Separator fill_sep = null!;
 
 	protected Gtk.SpinButton outline_width = null!;
+	private Gtk.MenuButton? outline_width_presets;
 	protected Gtk.Label outline_width_label = null!;
 	protected Gtk.Separator outline_width_sep = null!;
 
@@ -373,6 +374,9 @@ public abstract class BaseEditEngine
 				DrawActiveShape (false, false, true, false, false);
 			};
 		}
+
+		outline_width_presets ??= GtkExtensions.CreateToolBarPresetsButton (outline_width, GtkExtensions.SizePresets);
+		tb.Append (outline_width_presets);
 
 		tb.Append (outline_width);
 

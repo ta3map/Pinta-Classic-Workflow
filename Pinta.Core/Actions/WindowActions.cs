@@ -50,7 +50,7 @@ public sealed class WindowActions
 			"CloseAll",
 			Translations.GetString ("Close All"),
 			null,
-			Resources.StandardIcons.WindowClose,
+			Resources.Icons.MenuClose,
 			shortcuts: ["<Primary><Shift>W"]);
 
 		// TODO: Make `Command`

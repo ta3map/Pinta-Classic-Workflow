@@ -11,9 +11,12 @@ public sealed class ToolBoxWidget : Gtk.FlowBox
 	{
 		// --- Initialization (Gtk.FlowBox)
 
-		SetOrientation (Gtk.Orientation.Vertical);
-		MinChildrenPerLine = 8; // Pinta 3 has 22 default tools, meaning a max of 3 columns regardless of size, smaller values don't lead to better use of visual space.
-		MaxChildrenPerLine = 1024; // Allow for single column if there's sufficient space to do so.
+		// Two fixed columns filled row by row, like Paint.NET; the order comes from the tools' priorities.
+		SetOrientation (Gtk.Orientation.Horizontal);
+		MinChildrenPerLine = 2;
+		MaxChildrenPerLine = 2;
+		Homogeneous = true;
+		AddCssClass ("tool-box");
 
 		// --- References to keep
 

@@ -171,6 +171,57 @@ partial class GtkExtensions
 		return spin;
 	}
 
+	public static readonly int[] SizePresets = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 400, 500];
+
+	public static readonly int[] FontSizePresets = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200];
+
+	/// <summary>
+	/// Creates a drop-down button listing standard values for the spin button.
+	/// The button follows the visibility and sensitivity of the spin button.
+	/// </summary>
+	public static Gtk.MenuButton CreateToolBarPresetsButton (Gtk.SpinButton spin, int[] presets)
+	{
+		int[] values = presets.Where (v => v >= spin.Adjustment!.Lower && v <= spin.Adjustment.Upper).ToArray ();
+
+		Gtk.ListBox list = new () { SelectionMode = Gtk.SelectionMode.None };
+		foreach (int value in values)
+			list.Append (Gtk.Label.New (value.ToString ()));
+
+		Gtk.Popover popover = new () {
+			Child = new Gtk.ScrolledWindow {
+				Child = list,
+				HscrollbarPolicy = Gtk.PolicyType.Never,
+				OverlayScrolling = false,
+				PropagateNaturalHeight = true,
+				MaxContentHeight = 400,
+				MinContentWidth = 100,
+			},
+		};
+
+		list.OnRowActivated += (_, args) => {
+			spin.Value = values[args.Row.GetIndex ()];
+			popover.Popdown ();
+		};
+
+		Gtk.MenuButton button = new () {
+			Popover = popover,
+			CanFocus = false,
+		};
+
+		spin.BindProperty (
+			Gtk.Widget.VisiblePropertyDefinition.UnmanagedName,
+			button,
+			Gtk.Widget.VisiblePropertyDefinition.UnmanagedName,
+			GObject.BindingFlags.SyncCreate);
+		spin.BindProperty (
+			Gtk.Widget.SensitivePropertyDefinition.UnmanagedName,
+			button,
+			Gtk.Widget.SensitivePropertyDefinition.UnmanagedName,
+			GObject.BindingFlags.SyncCreate);
+
+		return button;
+	}
+
 	public static Gtk.Scale CreateToolBarSlider (
 		int min,
 		int max,

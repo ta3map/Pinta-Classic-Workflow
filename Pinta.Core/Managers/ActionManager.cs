@@ -64,7 +64,7 @@ public sealed class ActionManager
 
 		// --- Action handlers that depend on other handlers
 
-		FileActions file = new (system, app);
+		FileActions file = new (system, app, recentFiles);
 		HelpActions help = new (system, app);
 		ImageActions image = new (tools, workspace, view);
 		LayerActions layers = new (chrome, imageFormats, recentFiles, tools, workspace, image);
@@ -120,26 +120,6 @@ public sealed class ActionManager
 		toolbar.Append (Edit.Deselect.CreateToolBarItem ());
 	}
 
-	public void CreateHeaderToolBar (Adw.HeaderBar header)
-	{
-		header.PackStart (File.New.CreateToolBarItem ());
-		header.PackStart (File.Open.CreateToolBarItem ());
-		header.PackStart (File.Save.CreateToolBarItem ());
-
-		header.PackStart (GtkExtensions.CreateToolBarSeparator ());
-		header.PackStart (Edit.Undo.CreateToolBarItem ());
-		header.PackStart (Edit.Redo.CreateToolBarItem ());
-
-		header.PackStart (GtkExtensions.CreateToolBarSeparator ());
-		header.PackStart (Edit.Cut.CreateToolBarItem ());
-		header.PackStart (Edit.Copy.CreateToolBarItem ());
-		header.PackStart (Edit.Paste.CreateToolBarItem ());
-
-		header.PackStart (GtkExtensions.CreateToolBarSeparator ());
-		header.PackStart (Image.CropToSelection.CreateToolBarItem ());
-		header.PackStart (Edit.Deselect.CreateToolBarItem ());
-	}
-
 	public void CreateStatusBar (Gtk.Box statusbar, WorkspaceManager workspaceManager)
 	{
 		// Cursor position widget - left aligned with enough space to display coordinates up to tens of thousands (e.g. 10000, 10000).
@@ -168,7 +148,8 @@ public sealed class ActionManager
 			selection_size.SetText ($"{bounds.Width}, {bounds.Height}");
 		};
 
-		// Document zoom widget
+		// Document zoom widget - right aligned
+		statusbar.Append (new Gtk.Box { Hexpand = true });
 		View.CreateStatusBar (statusbar);
 	}
 

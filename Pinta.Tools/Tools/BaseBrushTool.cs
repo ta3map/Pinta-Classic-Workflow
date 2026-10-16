@@ -63,6 +63,7 @@ public abstract class BaseBrushTool : BaseTool
 		base.OnBuildToolBar (tb);
 
 		tb.Append (BrushWidthLabel);
+		tb.Append (BrushWidthPresets);
 		tb.Append (BrushWidthSpinButton);
 	}
 
@@ -121,7 +122,9 @@ public abstract class BaseBrushTool : BaseTool
 
 	private SpinButton? brush_width;
 	private Label? brush_width_label;
+	private MenuButton? brush_width_presets;
 
 	protected SpinButton BrushWidthSpinButton => brush_width ??= GtkExtensions.CreateToolBarSpinButton (1, 1e5, 1, Settings.GetSetting (SettingNames.BrushWidth (this), DEFAULT_BRUSH_WIDTH));
+	private MenuButton BrushWidthPresets => brush_width_presets ??= GtkExtensions.CreateToolBarPresetsButton (BrushWidthSpinButton, GtkExtensions.SizePresets);
 	protected Label BrushWidthLabel => brush_width_label ??= Label.New (string.Format (" {0}: ", Translations.GetString ("Brush width")));
 }

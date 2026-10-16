@@ -1,105 +1,94 @@
+# Pinta Classic Workflow
 
-# Pinta.NET
+**Pinta Classic Workflow** is a fork of [Pinta](https://github.com/PintaProject/Pinta) whose single goal is to make the look and behavior of the editor as close as possible to [Paint.NET](https://www.getpaint.net/) — the classic menu bar, floating tool windows, colored icons, the color wheel and all the small habits Paint.NET users rely on.
 
-**Pinta.NET** is a community fork of [Pinta](http://pinta-project.com/), with distinct branding and a reimagined user interface.  
-It is **not** the official Pinta application — **please do not report Pinta.NET bugs or ask for support on [upstream Pinta](https://github.com/PintaProject/Pinta)**.
+![Pinta Classic Workflow](screenshot.png)
 
-Project home / issues / discussions: [github.com/TandyColorComputer3/Pinta-dotNet](https://github.com/TandyColorComputer3/Pinta-dotNet)
+It is **not** the official Pinta application. Please report bugs and ask questions in [this repository](https://github.com/ta3map/Pinta-Classic-Workflow/issues), not on the upstream Pinta trackers.
 
-Upstream badges (official Pinta only — omit or replace if you distribute this fork):
+## Origin
 
-[![Translation status](https://hosted.weblate.org/widget/pinta/pinta/287x66-grey.png)](https://hosted.weblate.org/engage/pinta/)
-[![Build Status](https://github.com/PintaProject/Pinta/workflows/Build/badge.svg)](https://github.com/PintaProject/Pinta/actions)
+Pinta Classic Workflow is a fork of [Pinta](https://github.com/PintaProject/Pinta) — the open source GTK clone of Paint.NET 3.0 by Jonathan Pobst and Pinta contributors — maintained by [ta3map](https://github.com/ta3map). It installs alongside the original Pinta, keeps its own settings and works with add-ins made for Pinta.
 
-Copyright (C) 2010 Jonathan Pobst <monkey AT jpobst DOT com>
+## Install
 
-Pinta is a GTK clone of [Paint.Net 3.0](http://www.getpaint.net/), with support for Linux, Windows, and macOS.
+Download the packages from the [Releases](https://github.com/ta3map/Pinta-Classic-Workflow/releases) page.
 
-Original Pinta code is licensed under the MIT License:
-See `license-mit.txt` for the MIT License
+**Flatpak** (any Linux distribution):
 
-Code from Paint.Net 3.36 is used under the MIT License and retains the
-original headers on source files.
+```bash
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+flatpak install --user PintaClassicWorkflow.flatpak
+flatpak run io.github.ta3map.PintaClassicWorkflow
+```
 
-See `license-pdn.txt` for Paint.Net's original license.
+**Debian / Ubuntu** (Debian 13, Ubuntu 25.04 or newer — requires GTK >= 4.18 and libadwaita >= 1.7):
 
+```bash
+sudo apt install ./pinta-classic-workflow_<version>_amd64.deb
+pinta-classic-workflow
+```
 
-## Icons are from:
+## Differences from the latest Pinta
 
-- [Paint.Net 3.0](http://www.getpaint.net/)
-Used under [MIT License](http://www.opensource.org/licenses/mit-license.php)
+**Window layout**
+- Classic menu bar (File, Edit, View, Image, Layers, Adjustments, Effects, Add-ins, Window, Help) instead of header bar buttons and hamburger menus.
+- Colored icons next to every menu item, as in Paint.NET.
+- Tools, Colors, History and Layers are floating, semi-transparent windows over the canvas instead of docked side panels. They can be moved by their title, resized by their edges, and remember position and size.
+- Each window can be shown or hidden from View, with F5–F8, or with toggle buttons on the main toolbar.
+- Open images are shown as a thumbnail strip on the main toolbar instead of tabs.
+- Zoom controls sit in the bottom right corner of the status bar.
+- Flat, square-cornered widgets in the spirit of Windows 7 instead of rounded libadwaita styling.
 
-- [Silk icon set](https://github.com/markjames/famfamfam-silk-icons)
-Used under [Creative Commons Attribution 3.0 License](http://creativecommons.org/licenses/by/3.0/)
+**Icons**
+- Colorful icons from Pinta 1.3 for tools, adjustments, effects, image, layer and view commands.
+- Tango-style icons (from the Humanity theme) for New, Open, Save, Undo, Redo, Cut, Copy, Paste and other standard commands, instead of monochrome symbolic icons.
 
-- [Fugue icon set](https://p.yusukekamiyamane.com)
-Used under [Creative Commons Attribution 3.0 License](http://creativecommons.org/licenses/by/3.0/)
+**Tools**
+- Fixed two-column tool order of Paint.NET: rectangle select / move selected, lasso / move selection, ellipse select / zoom, magic wand / pan, paint bucket / gradient, paintbrush / eraser, pencil / color picker, clone stamp / recolor, text / line, shapes.
+- Drop-down lists of standard sizes next to every size field (brush width, font size and so on).
 
-- Pinta contributors, under the same license as the project itself
-(see `Pinta.Resources/icons/pinta-icons.md` for the list of such icons)
+**Colors**
+- Paint.NET-style Colors window: primary / secondary selector, color wheel, primary and secondary swatches with swap and reset, and a compact two-band palette.
+- **More >>** expands the window with hex, HSV and RGB fields and a transparency (alpha) slider.
 
-## Building on Windows
+**Behavior**
+- **Esc** deselects.
+- **Ctrl+F** repeats the last effect, and the menu item shows which effect will be repeated.
+- Layers can be reordered by drag and drop.
+- **File > Open Recent** lists the last opened and saved files.
+- Paint.NET **.pdn** files can be opened.
+- *New Screenshot* was removed from the File menu.
 
-First, install the required GTK-related dependencies:
-- Install [MSYS2](https://www.msys2.org)
-- From the CLANG64 terminal, run `pacman -S mingw-w64-clang-x86_64-libadwaita mingw-w64-clang-x86_64-webp-pixbuf-loader`.
-  - For ARM64 Windows, use the `CLANGARM64` terminal and replace `clang-x86_64` with `clang-aarch64`.
+## Building
 
-Pinta can then be built by opening `Pinta.sln` in [Visual Studio](https://visualstudio.microsoft.com/).
-Ensure that .NET 8 is installed via the Visual Studio installer.
+Requirements: .NET 8 SDK, GTK >= 4.18 and libadwaita >= 1.7.
 
-For building on the command line:
-- [Install the .NET 8 SDK](https://dotnet.microsoft.com/).
-- Build:
-  - `dotnet build`
-- Run:
-  - `dotnet run --project Pinta`
+```bash
+dotnet build
+dotnet run --project Pinta
+```
 
-## Building on macOS
+If your distribution ships older GTK / libadwaita, build and run inside the GNOME Flatpak SDK:
 
-- Install .NET 8 and GTK4
-  - `brew install dotnet-sdk libadwaita adwaita-icon-theme gettext webp-pixbuf-loader`
-  - For Apple Silicon, set `DYLD_LIBRARY_PATH=/opt/homebrew/lib` in the environment so that Pinta can load the GTK libraries
-  - For Intel, you may need to set `DYLD_LIBRARY_PATH=/usr/local/lib` when using .NET 9 or higher
-- Build:
-  - `dotnet build`
-- Run:
-  - `dotnet run --project Pinta`
+```bash
+flatpak install flathub org.gnome.Sdk//48 org.freedesktop.Sdk.Extension.dotnet8//24.08
+dev/build.sh   # builds into build/bin
+dev/run.sh     # runs build/bin/Pinta.dll
+```
 
-## Building on Linux
+Platform-specific instructions for Windows (MSYS2) and macOS (Homebrew) are the same as for [upstream Pinta](https://github.com/PintaProject/Pinta#readme).
 
-- Install [.NET 8](https://dotnet.microsoft.com/) following the instructions for your Linux distribution.
-- Install other dependencies (instructions are for Ubuntu 22.10, but should be similar for other distros):
-  - `sudo apt install autotools-dev autoconf-archive gettext intltool libadwaita-1-dev`
-  - Minimum library versions: `gtk` >= 4.18 and `libadwaita` >= 1.7
-  - Optional dependencies: `webp-pixbuf-loader`
-- Build (option 1, for development and testing):
-  - `dotnet build`
-  - `dotnet run --project Pinta`
-- Build (option 2, for installation):
-  - `./autogen.sh`
-    - If building from a tarball, run `./configure` instead.
-    - Add the `--prefix=<install directory>` argument to install to a directory other than `/usr/local`.
-  - `make install`
+## License
 
-## Building and Debugging in Docker
+The code is licensed under the MIT License, see [`license-mit.txt`](license-mit.txt).
 
-Follow the instructions of the corresponding [pinta-virtual-dev-environment](https://github.com/janrothkegel/pinta-virtual-dev-environment) project
+Code from Paint.NET 3.36 is used under the MIT License and keeps the original headers on source files. See [`license-pdn.txt`](license-pdn.txt) for Paint.NET's original license.
 
-## Getting help / contributing (Pinta.NET)
+### Icons
 
-Use **this repository** only for Pinta.NET support:
-
-- Questions and discussion: [Pinta.NET discussions](https://github.com/TandyColorComputer3/Pinta-dotNet/discussions)
-- Bugs / issues: [Pinta.NET issues](https://github.com/TandyColorComputer3/Pinta-dotNet/issues)
-
-The [legacy user guide](https://pinta-project.com/user-guide) still describes core features inherited from upstream Pinta; behavior in Pinta.NET may differ.
-
-- To contribute translations upstream (original **Pinta** project): [Weblate — Pinta](https://hosted.weblate.org/engage/pinta/)
-- IRC: `#pinta` on irc.gnome.org historically targets **upstream** Pinta developers.
-- For changes in **this fork**, see [CHANGELOG.md](CHANGELOG.md) in this repo and `patch-guidelines.md`.
-
-## Code signing policy
-- Free code signing on Windows provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
-- Committers and approvers: [Pinta Maintainers](https://github.com/orgs/PintaProject/people)
-- Privacy policy: this program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+- [Paint.NET 3.0](https://www.getpaint.net/) — MIT License.
+- [Silk icon set](https://github.com/markjames/famfamfam-silk-icons) — [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- [Fugue icon set](https://p.yusukekamiyamane.com) — [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- [Humanity icon theme](https://launchpad.net/humanity) — GNU GPL v2. Used for the `toolbar-*.svg` icons, see [`license-humanity-icons.txt`](license-humanity-icons.txt).
+- Pinta contributors — same license as the project (see `Pinta.Resources/icons/pinta-icons.md`).

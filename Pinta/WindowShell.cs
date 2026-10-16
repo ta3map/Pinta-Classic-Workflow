@@ -24,6 +24,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+using System.Collections.Generic;
+using System.Linq;
 using Pinta.Core;
 
 namespace Pinta;
@@ -31,7 +33,6 @@ namespace Pinta;
 public sealed class WindowShell
 {
 	private readonly Gtk.ApplicationWindow app_window;
-	private readonly Adw.HeaderBar? header_bar;
 	private readonly Gtk.Box shell_layout;
 	private Gtk.Box? workspace_layout;
 	private Gtk.Box? main_toolbar;
@@ -42,27 +43,9 @@ public sealed class WindowShell
 		string title,
 		int width,
 		int height,
-		bool useMenuBar,
 		bool maximize)
 	{
-		var app_layout = Adw.ToolbarView.New ();
-
-		if (!useMenuBar) {
-			var adwWindow = Adw.ApplicationWindow.New (app);
-			adwWindow.SetContent (app_layout);
-			app_window = adwWindow;
-
-			header_bar = Adw.HeaderBar.New ();
-			app_layout.AddTopBar (header_bar);
-		} else {
-			// If the header bar isn't being used, we use a regular Gtk.ApplicationWindow
-			// to have a traditional titlebar with the standard close / minimize buttons,
-			// and a menubar in the window unless a global menu is used (e.g. macOS)
-			app_window = Gtk.ApplicationWindow.New (app);
-			app_window.ShowMenubar = true;
-			app_window.SetChild (app_layout);
-		}
-
+		app_window = Gtk.ApplicationWindow.New (app);
 		app_window.Name = name;
 		app_window.Title = title;
 		app_window.DefaultWidth = width;
@@ -73,13 +56,38 @@ public sealed class WindowShell
 			app_window.Maximize ();
 
 		shell_layout = Gtk.Box.New (Gtk.Orientation.Vertical, 0);
-		app_layout.SetContent (shell_layout);
+		shell_layout.Append (CreateMenuBar (app.Menubar!));
+		app_window.SetChild (shell_layout);
 
 		app_window.Present ();
 	}
 
+	/// <summary>
+	/// GTK hides the icon of a menu item that has a label, so the icons are revealed whenever a menu opens.
+	/// </summary>
+	private static Gtk.PopoverMenuBar CreateMenuBar (Gio.MenuModel model)
+	{
+		Gtk.PopoverMenuBar menuBar = Gtk.PopoverMenuBar.NewFromModel (model);
+
+		foreach (Gtk.PopoverMenu popover in GetDescendants (menuBar).OfType<Gtk.PopoverMenu> ())
+			popover.OnShow += (_, _) => {
+				foreach (Gtk.Image image in GetDescendants (popover).OfType<Gtk.Image> ())
+					image.Visible = true;
+			};
+
+		return menuBar;
+	}
+
+	private static IEnumerable<Gtk.Widget> GetDescendants (Gtk.Widget widget)
+	{
+		for (Gtk.Widget? child = widget.GetFirstChild (); child is not null; child = child.GetNextSibling ()) {
+			yield return child;
+			foreach (Gtk.Widget descendant in GetDescendants (child))
+				yield return descendant;
+		}
+	}
+
 	public Gtk.ApplicationWindow Window => app_window;
-	public Adw.HeaderBar? HeaderBar => header_bar;
 
 	public Gtk.Box CreateToolBar (string name)
 	{
