@@ -45,8 +45,15 @@ public abstract class BaseBrushTool : BaseTool
 		Palette = services.GetService<IPaletteService> ();
 
 		BrushWidthSpinButton.TooltipText = Translations.GetString ("Change brush width. Shortcut keys: [ ]");
-		BrushWidthSpinButton.OnValueChanged += (_, _) => OnBrushWidthChanged ();
+		BrushWidthSpinButton.OnValueChanged += (_, _) => {
+			Settings.PutSetting (SettingNames.BRUSH_WIDTH, BrushWidth);
+			OnBrushWidthChanged ();
+		};
+
+		HardnessSlider.OnValueChanged += (_, _) => Settings.PutSetting (SettingNames.BRUSH_HARDNESS, Hardness);
 	}
+
+	protected int Hardness => (int) HardnessSlider.GetValue ();
 
 	protected override bool ShowAntialiasingButton => true;
 
@@ -65,6 +72,52 @@ public abstract class BaseBrushTool : BaseTool
 		tb.Append (BrushWidthLabel);
 		tb.Append (BrushWidthPresets);
 		tb.Append (BrushWidthSpinButton);
+		tb.Append (HardnessLabel);
+		tb.Append (HardnessSlider);
+	}
+
+	protected override void OnActivated (Document? document)
+	{
+		base.OnActivated (document);
+
+		BrushWidth = Settings.GetSetting (SettingNames.BRUSH_WIDTH, DEFAULT_BRUSH_WIDTH);
+		HardnessSlider.SetValue (Settings.GetSetting (SettingNames.BRUSH_HARDNESS, DEFAULT_BRUSH_HARDNESS));
+	}
+
+	/// <summary>
+	/// Stamps soft round dabs from the previous dab towards the given point,
+	/// using the current source and operator of the context.
+	/// </summary>
+	protected RectangleI StampSoftLine (Context g, PointD to)
+	{
+		if (last_dab is null)
+			StampDab (g, to);
+
+		PointD from = last_dab ?? to;
+		PointD dab = from;
+		double spacing = Math.Max (1, BrushWidth / 4.0);
+
+		while (dab.Distance (to) >= spacing) {
+			dab = Utility.Lerp (dab, to, (float) (spacing / dab.Distance (to)));
+			StampDab (g, dab);
+		}
+
+		last_dab = dab;
+
+		int padding = BrushWidth / 2 + 2;
+		return RectangleI.FromPoints (from.ToInt (), to.ToInt ()).Inflated (padding, padding);
+	}
+
+	private void StampDab (Context g, PointD center)
+	{
+		RadialGradient mask = new (center.X, center.Y, 0, center.X, center.Y, BrushWidth / 2.0) { Extend = Extend.None };
+		double hardness = Hardness / 100.0;
+		mask.AddColorStop (0, new Color (0, 0, 0, 1));
+		for (int i = 0; i <= FALLOFF_STOPS; i++) {
+			double s = (double) i / FALLOFF_STOPS;
+			mask.AddColorStop (hardness + (1 - hardness) * s, new Color (0, 0, 0, Math.Pow (1 - s, 3)));
+		}
+		g.Mask (mask);
 	}
 
 	protected override void OnMouseDown (Document document, ToolMouseEventArgs e)
@@ -89,6 +142,7 @@ public abstract class BaseBrushTool : BaseTool
 		surface_modified = false;
 		undo_surface = null;
 		mouse_button = MouseButton.None;
+		last_dab = null;
 	}
 
 	protected override bool OnKeyDown (Document document, ToolKeyEventArgs e)
@@ -105,14 +159,6 @@ public abstract class BaseBrushTool : BaseTool
 		return base.OnKeyDown (document, e);
 	}
 
-	protected override void OnSaveSettings (ISettingsService settings)
-	{
-		base.OnSaveSettings (settings);
-
-		if (brush_width is not null)
-			settings.PutSetting (SettingNames.BrushWidth (this), brush_width.GetValueAsInt ());
-	}
-
 	protected virtual void OnBrushWidthChanged ()
 	{
 		// Change the cursor when the BrushWidth is changed.
@@ -120,11 +166,18 @@ public abstract class BaseBrushTool : BaseTool
 	}
 
 
+	private const int FALLOFF_STOPS = 8;
+
+	private PointD? last_dab;
 	private SpinButton? brush_width;
 	private Label? brush_width_label;
 	private MenuButton? brush_width_presets;
+	private Scale? hardness_slider;
+	private Label? hardness_label;
 
-	protected SpinButton BrushWidthSpinButton => brush_width ??= GtkExtensions.CreateToolBarSpinButton (1, 1e5, 1, Settings.GetSetting (SettingNames.BrushWidth (this), DEFAULT_BRUSH_WIDTH));
+	protected SpinButton BrushWidthSpinButton => brush_width ??= GtkExtensions.CreateToolBarSpinButton (1, 1e5, 1, Settings.GetSetting (SettingNames.BRUSH_WIDTH, DEFAULT_BRUSH_WIDTH));
+	private Scale HardnessSlider => hardness_slider ??= GtkExtensions.CreateToolBarSlider (0, 100, 1, Settings.GetSetting (SettingNames.BRUSH_HARDNESS, DEFAULT_BRUSH_HARDNESS));
+	private Label HardnessLabel => hardness_label ??= Label.New (string.Format (" {0}: ", Translations.GetString ("Hardness")));
 	private MenuButton BrushWidthPresets => brush_width_presets ??= GtkExtensions.CreateToolBarPresetsButton (BrushWidthSpinButton, GtkExtensions.SizePresets);
 	protected Label BrushWidthLabel => brush_width_label ??= Label.New (string.Format (" {0}: ", Translations.GetString ("Brush width")));
 }

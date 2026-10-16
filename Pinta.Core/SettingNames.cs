@@ -11,6 +11,7 @@ internal static class SettingNames
 	internal const string SHOW_CANVAS_GRID = "show-canvas-grid";
 	internal const string CANVAS_GRID_WIDTH = "canvas-grid-width";
 	internal const string CANVAS_GRID_HEIGHT = "canvas-grid-height";
+	internal const string PIXEL_GRID_MIN_ZOOM = "pixel-grid-min-zoom";
 
 	internal const string SHOW_CANVAS_AXONOMETRIC_GRID = "show-canvas-axonometric-grid";
 	internal const string CANVAS_AXONOMETRIC_WIDTH = "canvas-axonometric-grid-width";

@@ -147,6 +147,7 @@ public sealed class PintaCanvas : Gtk.Picture
 		DrawCanvasTexture (snapshot, modified_area, canvasViewBounds);
 		DrawSelection (snapshot, canvasViewBounds);
 		DrawHandles (snapshot, canvasViewBounds);
+		DrawPixelGrid (snapshot, canvasViewBounds);
 		DrawCanvasGrid (snapshot, canvasViewBounds);
 		DrawCanvasAxonometricGrid (snapshot, canvasViewBounds);
 
@@ -298,12 +299,33 @@ public sealed class PintaCanvas : Gtk.Picture
 		snapshot.Pop ();
 	}
 
+	private void DrawPixelGrid (Gtk.Snapshot snapshot, Graphene.Rect canvasViewBounds)
+	{
+		if (!canvas_grid.ShowPixelGrid || document.Workspace.Scale * 100 < canvas_grid.PixelGridMinZoom)
+			return;
+
+		Gsk.Path gridPath = BuildCanvasGridPath (1, 1);
+
+		snapshot.PushClip (canvasViewBounds);
+		snapshot.Save ();
+
+		float scale = (float) document.Workspace.Scale;
+		snapshot.Scale (scale, scale);
+
+		Gsk.Stroke stroke = Gsk.Stroke.New (lineWidth: 1.0f / scale);
+		Gdk.RGBA color = new () { Red = 0.5f, Green = 0.5f, Blue = 0.5f, Alpha = 0.5f };
+		snapshot.AppendStroke (gridPath, stroke, color);
+
+		snapshot.Restore ();
+		snapshot.Pop ();
+	}
+
 	private void DrawCanvasGrid (Gtk.Snapshot snapshot, Graphene.Rect canvasViewBounds)
 	{
 		if (!ShouldShowCanvasGrid ())
 			return;
 
-		Gsk.Path gridPath = BuildCanvasGridPath ();
+		Gsk.Path gridPath = BuildCanvasGridPath (canvas_grid.CellWidth, canvas_grid.CellHeight);
 
 		snapshot.PushClip (canvasViewBounds);
 		snapshot.Save ();
@@ -323,10 +345,8 @@ public sealed class PintaCanvas : Gtk.Picture
 		snapshot.Pop ();
 	}
 
-	private Gsk.Path BuildCanvasGridPath ()
+	private Gsk.Path BuildCanvasGridPath (int cellWidth, int cellHeight)
 	{
-		int cellHeight = canvas_grid.CellHeight;
-		int cellWidth = canvas_grid.CellWidth;
 		int imageHeight = document.ImageSize.Height;
 		int imageWidth = document.ImageSize.Width;
 

@@ -12,8 +12,11 @@ namespace Pinta.Docking;
 public sealed class FloatingPad : Gtk.Box
 {
 	private const int DEFAULT_OFFSET = 8;
-	private const double INACTIVE_OPACITY = 0.8;
 	private const int RESIZE_BORDER = 6;
+
+	private double inactive_opacity = 0.8;
+	private int default_width;
+	private int default_height;
 
 	private readonly string unique_name;
 	private readonly Gtk.Box content;
@@ -70,8 +73,11 @@ public sealed class FloatingPad : Gtk.Box
 		AddController (resize);
 
 		Gtk.EventControllerMotion motion = Gtk.EventControllerMotion.New ();
-		motion.OnEnter += (_, _) => Opacity = 1;
-		motion.OnLeave += (_, _) => Opacity = INACTIVE_OPACITY;
+		motion.OnEnter += (_, _) => {
+			Opacity = 1;
+			InsertBefore (GetParent ()!, null);
+		};
+		motion.OnLeave += (_, _) => Opacity = inactive_opacity;
 		motion.OnMotion += (_, args) => {
 			GetEdges (args.X, args.Y, out int edgeX, out int edgeY);
 			SetCursorFromName (GetResizeCursor (edgeX, edgeY));
@@ -88,7 +94,7 @@ public sealed class FloatingPad : Gtk.Box
 
 		Halign = halign;
 		Valign = valign;
-		Opacity = INACTIVE_OPACITY;
+		Opacity = inactive_opacity;
 		AddCssClass ("floating-pad");
 		AddController (motion);
 
@@ -105,6 +111,27 @@ public sealed class FloatingPad : Gtk.Box
 	}
 
 	public bool Resizable { get; init; } = true;
+
+	/// <summary>
+	/// The opacity of the pad while the pointer is outside of it.
+	/// </summary>
+	public double InactiveOpacity {
+		get => inactive_opacity;
+		set {
+			inactive_opacity = value;
+			Opacity = value;
+		}
+	}
+
+	/// <summary>
+	/// Moves the pad back to its corner and restores its original size.
+	/// </summary>
+	public void ResetLayout ()
+	{
+		OffsetX = DEFAULT_OFFSET;
+		OffsetY = DEFAULT_OFFSET;
+		SetSizeRequest (default_width, default_height);
+	}
 
 	private int DirectionX => Halign == Gtk.Align.End ? -1 : 1;
 	private int DirectionY => Valign == Gtk.Align.End ? -1 : 1;
@@ -205,6 +232,8 @@ public sealed class FloatingPad : Gtk.Box
 
 	public void LoadSettings (ISettingsService settings)
 	{
+		default_width = WidthRequest;
+		default_height = HeightRequest;
 		OffsetX = settings.GetSetting ($"pad-{unique_name}-x", DEFAULT_OFFSET);
 		OffsetY = settings.GetSetting ($"pad-{unique_name}-y", DEFAULT_OFFSET);
 		SetSizeRequest (

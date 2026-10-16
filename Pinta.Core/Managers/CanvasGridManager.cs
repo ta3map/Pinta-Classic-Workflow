@@ -6,6 +6,8 @@ namespace Pinta.Core;
 public interface ICanvasGridService
 {
 	bool ShowGrid { get; set; }
+	bool ShowPixelGrid { get; set; }
+	int PixelGridMinZoom { get; set; }
 	int CellWidth { get; set; }
 	int CellHeight { get; set; }
 
@@ -26,6 +28,8 @@ public sealed class CanvasGridManager : ICanvasGridService
 	private readonly SettingsManager settings;
 
 	private bool show_grid;
+	private bool show_pixel_grid;
+	private int pixel_grid_min_zoom;
 	private int cell_width;
 	private int cell_height;
 
@@ -36,6 +40,19 @@ public sealed class CanvasGridManager : ICanvasGridService
 	public bool ShowGrid {
 		get => show_grid;
 		set => SetProperty (ref show_grid, value);
+	}
+
+	public bool ShowPixelGrid {
+		get => show_pixel_grid;
+		set => SetProperty (ref show_pixel_grid, value);
+	}
+
+	/// <summary>
+	/// The zoom level, in percent, from which the pixel grid is drawn.
+	/// </summary>
+	public int PixelGridMinZoom {
+		get => pixel_grid_min_zoom;
+		set => SetProperty (ref pixel_grid_min_zoom, value);
 	}
 
 	public int CellWidth {
@@ -80,6 +97,7 @@ public sealed class CanvasGridManager : ICanvasGridService
 		settings.PutSetting (SettingNames.SHOW_CANVAS_GRID, ShowGrid);
 		settings.PutSetting (SettingNames.CANVAS_GRID_WIDTH, CellWidth);
 		settings.PutSetting (SettingNames.CANVAS_GRID_HEIGHT, CellHeight);
+		settings.PutSetting (SettingNames.PIXEL_GRID_MIN_ZOOM, PixelGridMinZoom);
 
 		settings.PutSetting (SettingNames.SHOW_CANVAS_AXONOMETRIC_GRID, ShowAxonometricGrid);
 		settings.PutSetting (SettingNames.CANVAS_AXONOMETRIC_WIDTH, AxonometricWidth);
@@ -91,6 +109,7 @@ public sealed class CanvasGridManager : ICanvasGridService
 		ShowGrid = settings.GetSetting (SettingNames.SHOW_CANVAS_GRID, false);
 		CellWidth = settings.GetSetting (SettingNames.CANVAS_GRID_WIDTH, 64);
 		CellHeight = settings.GetSetting (SettingNames.CANVAS_GRID_HEIGHT, 64);
+		PixelGridMinZoom = settings.GetSetting (SettingNames.PIXEL_GRID_MIN_ZOOM, 400);
 
 		ShowAxonometricGrid = settings.GetSetting (SettingNames.SHOW_CANVAS_AXONOMETRIC_GRID, false);
 		AxonometricWidth = settings.GetSetting (SettingNames.CANVAS_AXONOMETRIC_WIDTH, 64);

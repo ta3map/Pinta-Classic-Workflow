@@ -36,6 +36,8 @@ namespace Pinta;
 
 internal sealed class MainWindow
 {
+	private const int DEFAULT_PAD_OPACITY = 80;
+
 	readonly Adw.Application app;
 	// NRT - Created in OnActivated
 	WindowShell window_shell = null!;
@@ -402,6 +404,17 @@ internal sealed class MainWindow
 		main_toolbar.Append (thumbnail_strip);
 		PintaCore.Actions.View.ImageTabs.Toggled += (visible, _) => thumbnail_strip.Visible = visible;
 
+		PintaCore.Actions.View.PixelGrid.Toggled += (visible, _) => PintaCore.CanvasGrid.ShowPixelGrid = visible;
+		PintaCore.Actions.View.Settings.Activated += (_, _) => ShowSettingsDialog ();
+
+		main_toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
+		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.Rulers));
+		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.PixelGrid));
+		main_toolbar.Append (new Gtk.Button {
+			IconName = PintaCore.Actions.View.Settings.IconName,
+			ActionName = PintaCore.Actions.View.Settings.FullName,
+			TooltipText = PintaCore.Actions.View.Settings.Label,
+		});
 		main_toolbar.Append (GtkExtensions.CreateToolBarSeparator ());
 		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.ToolBox));
 		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.History));
@@ -409,12 +422,56 @@ internal sealed class MainWindow
 		main_toolbar.Append (CreatePadToggle (PintaCore.Actions.View.Colors));
 	}
 
+	private async void ShowSettingsDialog ()
+	{
+		SettingsDialog.Values initial = new (
+			Theme: PintaCore.Actions.View.ColorScheme.GetState ()!.GetInt32 (),
+			RulerUnits: (int) GetCurrentRulerMetric (),
+			ImageWidth: PintaCore.Settings.GetSetting (SettingNames.NEW_IMAGE_WIDTH, 800),
+			ImageHeight: PintaCore.Settings.GetSetting (SettingNames.NEW_IMAGE_HEIGHT, 600),
+			ImageBackground: (int) PintaCore.Settings.GetSetting (SettingNames.NEW_IMAGE_BACKGROUND, BackgroundType.White),
+			BrushWidth: PintaCore.Settings.GetSetting (BaseTool.BRUSH_WIDTH_SETTING, BaseTool.DEFAULT_BRUSH_WIDTH),
+			BrushHardness: PintaCore.Settings.GetSetting (BaseTool.BRUSH_HARDNESS_SETTING, BaseTool.DEFAULT_BRUSH_HARDNESS),
+			PixelGridZoom: PintaCore.CanvasGrid.PixelGridMinZoom,
+			PadOpacity: PintaCore.Settings.GetSetting (SettingNames.PAD_INACTIVE_OPACITY, DEFAULT_PAD_OPACITY),
+			ResetLayout: false);
+
+		using SettingsDialog dialog = new (PintaCore.Chrome, initial);
+		Gtk.ResponseType response = await dialog.RunAsync ();
+		SettingsDialog.Values result = dialog.Result;
+		dialog.Destroy ();
+
+		if (response != Gtk.ResponseType.Ok)
+			return;
+
+		PintaCore.Actions.View.ColorScheme.Activate (GLib.Variant.NewInt32 (result.Theme));
+		PintaCore.Actions.View.RulerMetric.Activate (GLib.Variant.NewInt32 (result.RulerUnits));
+
+		PintaCore.Settings.PutSetting (SettingNames.NEW_IMAGE_WIDTH, result.ImageWidth);
+		PintaCore.Settings.PutSetting (SettingNames.NEW_IMAGE_HEIGHT, result.ImageHeight);
+		PintaCore.Settings.PutSetting (SettingNames.NEW_IMAGE_BACKGROUND, (BackgroundType) result.ImageBackground);
+
+		PintaCore.Settings.PutSetting (BaseTool.BRUSH_WIDTH_SETTING, result.BrushWidth);
+		PintaCore.Settings.PutSetting (BaseTool.BRUSH_HARDNESS_SETTING, result.BrushHardness);
+		PintaCore.Tools.ReloadCurrentTool ();
+
+		PintaCore.CanvasGrid.PixelGridMinZoom = result.PixelGridZoom;
+		PintaCore.CanvasGrid.SaveGridSettings ();
+
+		PintaCore.Settings.PutSetting (SettingNames.PAD_INACTIVE_OPACITY, result.PadOpacity);
+		foreach (FloatingPad pad in pads) {
+			pad.InactiveOpacity = result.PadOpacity / 100.0;
+			if (result.ResetLayout)
+				pad.ResetLayout ();
+		}
+	}
+
 	private static Gtk.ToggleButton CreatePadToggle (ToggleCommand command)
 	{
 		return new Gtk.ToggleButton {
 			IconName = command.IconName,
 			ActionName = command.FullName,
-			TooltipText = $"{command.Label} ({command.Shortcuts[0]})",
+			TooltipText = string.Join (" ", command.Shortcuts.Take (1).Select (s => $"({s})").Prepend (command.Label)),
 		};
 	}
 
@@ -498,8 +555,11 @@ internal sealed class MainWindow
 
 	private void LoadUserSettings ()
 	{
-		foreach (FloatingPad pad in pads)
+		double padOpacity = PintaCore.Settings.GetSetting (SettingNames.PAD_INACTIVE_OPACITY, DEFAULT_PAD_OPACITY) / 100.0;
+		foreach (FloatingPad pad in pads) {
 			pad.LoadSettings (PintaCore.Settings);
+			pad.InactiveOpacity = padOpacity;
+		}
 
 		colors_widget.LoadSettings (PintaCore.Settings);
 
@@ -507,6 +567,7 @@ internal sealed class MainWindow
 		PintaCore.Tools.SetCurrentTool (PintaCore.Settings.GetSetting (SettingNames.LAST_SELECTED_TOOL, "PaintBrushTool"));
 
 		PintaCore.Actions.View.Rulers.Value = PintaCore.Settings.GetSetting (SettingNames.RULER_SHOWN, false);
+		PintaCore.Actions.View.PixelGrid.Value = PintaCore.Settings.GetSetting (SettingNames.PIXEL_GRID_SHOWN, false);
 		PintaCore.Actions.View.ToolBar.Value = PintaCore.Settings.GetSetting (SettingNames.TOOLBAR_SHOWN, true);
 		PintaCore.Actions.View.StatusBar.Value = PintaCore.Settings.GetSetting (SettingNames.STATUSBAR_SHOWN, true);
 		PintaCore.Actions.View.ToolBox.Value = PintaCore.Settings.GetSetting (SettingNames.TOOLBOX_SHOWN, true);
@@ -542,6 +603,7 @@ internal sealed class MainWindow
 		PintaCore.Settings.PutSetting (SettingNames.COLOR_SCHEME, PintaCore.Actions.View.ColorScheme.GetState ()!.GetInt32 ());
 		PintaCore.Settings.PutSetting (SettingNames.WINDOW_MAXIMIZED, window_shell.Window.IsMaximized ());
 		PintaCore.Settings.PutSetting (SettingNames.RULER_SHOWN, PintaCore.Actions.View.Rulers.Value);
+		PintaCore.Settings.PutSetting (SettingNames.PIXEL_GRID_SHOWN, PintaCore.Actions.View.PixelGrid.Value);
 		PintaCore.Settings.PutSetting (SettingNames.IMAGE_TABS_SHOWN, PintaCore.Actions.View.ImageTabs.Value);
 		PintaCore.Settings.PutSetting (SettingNames.TOOLBAR_SHOWN, PintaCore.Actions.View.ToolBar.Value);
 		PintaCore.Settings.PutSetting (SettingNames.STATUSBAR_SHOWN, PintaCore.Actions.View.StatusBar.Value);

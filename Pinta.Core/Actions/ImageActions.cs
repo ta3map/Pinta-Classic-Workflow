@@ -37,6 +37,11 @@ public sealed class ImageActions
 	public Command CanvasSize { get; }
 	public Command FlipHorizontal { get; }
 	public Command FlipVertical { get; }
+	public Command FlipSelectionHorizontal { get; }
+	public Command FlipSelectionVertical { get; }
+	public Command RotateSelectionCW { get; }
+	public Command RotateSelectionCCW { get; }
+	public Command RotateSelection180 { get; }
 	public Command RotateCW { get; }
 	public Command RotateCCW { get; }
 	public Command Rotate180 { get; }
@@ -91,6 +96,18 @@ public sealed class ImageActions
 			null,
 			Resources.Icons.ImageFlipVertical);
 
+		FlipSelectionHorizontal = new Command (
+			"flipselectionhorizontal",
+			Translations.GetString ("Flip Horizontal (Selection)"),
+			null,
+			Resources.Icons.ImageFlipHorizontal);
+
+		FlipSelectionVertical = new Command (
+			"flipselectionvertical",
+			Translations.GetString ("Flip Vertical (Selection)"),
+			null,
+			Resources.Icons.ImageFlipVertical);
+
 		RotateCW = new Command (
 			"rotatecw",
 			Translations.GetString ("Rotate 90° Clockwise"),
@@ -112,6 +129,24 @@ public sealed class ImageActions
 			Resources.Icons.ImageRotate180,
 			shortcuts: ["<Primary>J"]);
 
+		RotateSelectionCW = new Command (
+			"rotateselectioncw",
+			Translations.GetString ("Rotate 90° Clockwise (Selection)"),
+			null,
+			Resources.Icons.ImageRotate90CW);
+
+		RotateSelectionCCW = new Command (
+			"rotateselectionccw",
+			Translations.GetString ("Rotate 90° Counter-Clockwise (Selection)"),
+			null,
+			Resources.Icons.ImageRotate90CCW);
+
+		RotateSelection180 = new Command (
+			"rotateselection180",
+			Translations.GetString ("Rotate 180° (Selection)"),
+			null,
+			Resources.Icons.ImageRotate180);
+
 		Flatten = new Command (
 			"flatten",
 			Translations.GetString ("Flatten"),
@@ -129,11 +164,16 @@ public sealed class ImageActions
 		Gio.Menu flip_section = Gio.Menu.New ();
 		flip_section.AppendItem (FlipHorizontal.CreateMenuItem ());
 		flip_section.AppendItem (FlipVertical.CreateMenuItem ());
+		flip_section.AppendItem (FlipSelectionHorizontal.CreateMenuItem ());
+		flip_section.AppendItem (FlipSelectionVertical.CreateMenuItem ());
 
 		Gio.Menu rotate_section = Gio.Menu.New ();
 		rotate_section.AppendItem (RotateCW.CreateMenuItem ());
 		rotate_section.AppendItem (RotateCCW.CreateMenuItem ());
 		rotate_section.AppendItem (Rotate180.CreateMenuItem ());
+		rotate_section.AppendItem (RotateSelectionCW.CreateMenuItem ());
+		rotate_section.AppendItem (RotateSelectionCCW.CreateMenuItem ());
+		rotate_section.AppendItem (RotateSelection180.CreateMenuItem ());
 
 		Gio.Menu flatten_section = Gio.Menu.New ();
 		flatten_section.AppendItem (Flatten.CreateMenuItem ());
@@ -154,10 +194,15 @@ public sealed class ImageActions
 
 			FlipHorizontal,
 			FlipVertical,
+			FlipSelectionHorizontal,
+			FlipSelectionVertical,
 
 			RotateCW,
 			RotateCCW,
 			Rotate180,
+			RotateSelectionCW,
+			RotateSelectionCCW,
+			RotateSelection180,
 
 			Flatten]);
 	}
@@ -166,6 +211,11 @@ public sealed class ImageActions
 	{
 		FlipHorizontal.Activated += HandlePintaCoreActionsImageFlipHorizontalActivated;
 		FlipVertical.Activated += HandlePintaCoreActionsImageFlipVerticalActivated;
+		FlipSelectionHorizontal.Activated += (_, _) => TransformSelection (Resources.Icons.ImageFlipHorizontal, FlipSelectionHorizontal.Label, -1, 0, 0, 1);
+		FlipSelectionVertical.Activated += (_, _) => TransformSelection (Resources.Icons.ImageFlipVertical, FlipSelectionVertical.Label, 1, 0, 0, -1);
+		RotateSelectionCW.Activated += (_, _) => TransformSelection (Resources.Icons.ImageRotate90CW, RotateSelectionCW.Label, 0, 1, -1, 0);
+		RotateSelectionCCW.Activated += (_, _) => TransformSelection (Resources.Icons.ImageRotate90CCW, RotateSelectionCCW.Label, 0, -1, 1, 0);
+		RotateSelection180.Activated += (_, _) => TransformSelection (Resources.Icons.ImageRotate180, RotateSelection180.Label, -1, 0, 0, -1);
 		Rotate180.Activated += HandlePintaCoreActionsImageRotate180Activated;
 		Flatten.Activated += HandlePintaCoreActionsImageFlattenActivated;
 		RotateCW.Activated += HandlePintaCoreActionsImageRotateCWActivated;
@@ -181,7 +231,57 @@ public sealed class ImageActions
 				visible = workspace.ActiveDocument.Selection.Visible;
 
 			CropToSelection.Sensitive = visible;
+			FlipSelectionHorizontal.Sensitive = visible;
+			FlipSelectionVertical.Sensitive = visible;
+			RotateSelectionCW.Sensitive = visible;
+			RotateSelectionCCW.Sensitive = visible;
+			RotateSelection180.Sensitive = visible;
 		};
+	}
+
+	/// <summary>
+	/// Flips or rotates the selected pixels of the current layer, together with the selection outline,
+	/// around the center of the selection: x' = xx * x + xy * y, y' = yx * x + yy * y.
+	/// The offset is rounded to whole pixels, so that the pixels are moved without resampling.
+	/// </summary>
+	private void TransformSelection (string icon, string text, double xx, double yx, double xy, double yy)
+	{
+		Document doc = workspace.ActiveDocument;
+
+		tools.Commit ();
+
+		UserLayer layer = doc.Layers.CurrentUserLayer;
+		PointD center = doc.Selection.GetBounds ().GetCenter ();
+		Matrix transform = CairoExtensions.CreateMatrix (
+			xx, yx, xy, yy,
+			Math.Round (center.X - xx * center.X - xy * center.Y),
+			Math.Round (center.Y - yx * center.X - yy * center.Y));
+		DocumentSelection transformed = doc.Selection.Transform (transform);
+
+		CompoundHistoryItem hist = new (icon, text);
+		SelectionHistoryItem selectionHist = new (workspace, string.Empty, string.Empty);
+		selectionHist.TakeSnapshot ();
+		hist.Push (selectionHist);
+		hist.Push (new SimpleHistoryItem (string.Empty, string.Empty, layer.Surface.Clone (), doc.Layers.CurrentUserLayerIndex));
+
+		using ImageSurface original = layer.Surface.Clone ();
+		using (Context g = new (layer.Surface)) {
+			g.AppendPath (doc.Selection.SelectionPath);
+			g.FillRule = FillRule.EvenOdd;
+			g.Operator = Operator.Clear;
+			g.Fill ();
+
+			transformed.Clip (g);
+			g.Operator = Operator.Source;
+			g.Transform (transform);
+			g.SetSourceSurface (original, 0, 0);
+			g.Paint ();
+		}
+
+		doc.Selection = transformed;
+		doc.PreviousSelection = doc.PreviousSelection.Transform (transform);
+		doc.History.PushNewItem (hist);
+		doc.Workspace.Invalidate ();
 	}
 
 	private void HandlePintaCoreActionsImageRotateCCWActivated (object sender, EventArgs e)

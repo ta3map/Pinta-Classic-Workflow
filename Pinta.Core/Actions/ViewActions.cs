@@ -46,6 +46,8 @@ public sealed class ViewActions
 	public ToggleCommand Layers { get; }
 	public ToggleCommand Colors { get; }
 	public ToggleCommand Rulers { get; }
+	public ToggleCommand PixelGrid { get; }
+	public Command Settings { get; }
 	public Gio.SimpleAction RulerMetric { get; }
 	public Gio.SimpleAction ColorScheme { get; }
 	public Command Fullscreen { get; }
@@ -160,6 +162,18 @@ public sealed class ViewActions
 			null,
 			Resources.Icons.ViewRulers);
 
+		PixelGrid = new ToggleCommand (
+			"PixelGrid",
+			Translations.GetString ("Pixel Grid"),
+			null,
+			Resources.Icons.ViewGrid);
+
+		Settings = new Command (
+			"Settings",
+			Translations.GetString ("Settings..."),
+			null,
+			Resources.StandardIcons.Preferences);
+
 		RulerMetric = Gio.SimpleAction.NewStateful ( // TODO: Make `Command`
 			"rulermetric",
 			GtkExtensions.IntVariantType,
@@ -233,6 +247,7 @@ public sealed class ViewActions
 
 		Gio.Menu grid_section = Gio.Menu.New ();
 		grid_section.AppendItem (EditCanvasGrid.CreateMenuItem ());
+		grid_section.AppendItem (Settings.CreateMenuItem ());
 
 		Gio.Menu metric_menu = Gio.Menu.New ();
 		metric_menu.Append (Translations.GetString ("Pixels"), $"app.{RulerMetric.Name}(0)");
@@ -244,6 +259,7 @@ public sealed class ViewActions
 
 		Gio.Menu show_hide_menu = Gio.Menu.New ();
 		show_hide_menu.AppendItem (Rulers.CreateMenuItem ());
+		show_hide_menu.AppendItem (PixelGrid.CreateMenuItem ());
 		show_hide_menu.AppendItem (StatusBar.CreateMenuItem ());
 		show_hide_menu.AppendItem (ToolBox.CreateMenuItem ());
 		show_hide_menu.AppendItem (History.CreateMenuItem ());
@@ -279,7 +295,9 @@ public sealed class ViewActions
 			ZoomToWindow,
 			Fullscreen,
 			EditCanvasGrid,
+			Settings,
 			Rulers,
+			PixelGrid,
 			StatusBar,
 			ToolBox,
 			History,

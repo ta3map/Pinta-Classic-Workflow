@@ -103,15 +103,17 @@ public sealed class CloneStampTool : BaseBrushTool
 
 		using Cairo.Context g = document.CreateClippedToolContext ();
 		g.Antialias = UseAntialiasing ? Cairo.Antialias.Subpixel : Cairo.Antialias.None;
-
-		g.MoveTo (last_point.Value.X, last_point.Value.Y);
-		g.LineTo (x, y);
-
 		g.SetSourceSurface (document.Layers.CurrentUserLayer.Surface, offset.Value.X, offset.Value.Y);
-		g.LineWidth = BrushWidth;
-		g.LineCap = Cairo.LineCap.Round;
 
-		g.Stroke ();
+		if (Hardness < 100) {
+			StampSoftLine (g, e.PointDouble);
+		} else {
+			g.MoveTo (last_point.Value.X, last_point.Value.Y);
+			g.LineTo (x, y);
+			g.LineWidth = BrushWidth;
+			g.LineCap = Cairo.LineCap.Round;
+			g.Stroke ();
+		}
 
 		int dirtyPadding = BrushWidth + 2;
 		RectangleI dirtyRect = RectangleI.FromPoints (last_point.Value, e.Point).Inflated (dirtyPadding, dirtyPadding);

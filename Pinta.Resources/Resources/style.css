@@ -25,6 +25,14 @@ scale slider {
     min-width: 0;
 }
 
+.thumbnail-dirty-mark {
+    font-weight: bold;
+    font-size: 1.2em;
+    margin-top: -4px;
+    color: @accent_color;
+    text-shadow: 0 0 2px @window_bg_color;
+}
+
 .tool-bar-scale {
     margin-top: -4px;
     margin-bottom: -5px;

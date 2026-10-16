@@ -144,6 +144,11 @@ public sealed class ActionHandlers
 		PintaCore.Actions.Image.Resize.Sensitive = enable;
 		PintaCore.Actions.Image.FlipHorizontal.Sensitive = enable;
 		PintaCore.Actions.Image.FlipVertical.Sensitive = enable;
+		PintaCore.Actions.Image.FlipSelectionHorizontal.Sensitive = enable;
+		PintaCore.Actions.Image.FlipSelectionVertical.Sensitive = enable;
+		PintaCore.Actions.Image.RotateSelectionCW.Sensitive = enable;
+		PintaCore.Actions.Image.RotateSelectionCCW.Sensitive = enable;
+		PintaCore.Actions.Image.RotateSelection180.Sensitive = enable;
 		PintaCore.Actions.Image.Rotate180.Sensitive = enable;
 		PintaCore.Actions.Image.RotateCCW.Sensitive = enable;
 		PintaCore.Actions.Image.RotateCW.Sensitive = enable;

@@ -173,6 +173,8 @@ partial class GtkExtensions
 
 	public static readonly int[] SizePresets = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 400, 500];
 
+	private const int PRESET_COLUMNS = 4;
+
 	public static readonly int[] FontSizePresets = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200];
 
 	/// <summary>
@@ -183,25 +185,19 @@ partial class GtkExtensions
 	{
 		int[] values = presets.Where (v => v >= spin.Adjustment!.Lower && v <= spin.Adjustment.Upper).ToArray ();
 
-		Gtk.ListBox list = new () { SelectionMode = Gtk.SelectionMode.None };
-		foreach (int value in values)
-			list.Append (Gtk.Label.New (value.ToString ()));
+		Gtk.Grid grid = new () { ColumnHomogeneous = true };
+		Gtk.Popover popover = new () { Child = grid };
 
-		Gtk.Popover popover = new () {
-			Child = new Gtk.ScrolledWindow {
-				Child = list,
-				HscrollbarPolicy = Gtk.PolicyType.Never,
-				OverlayScrolling = false,
-				PropagateNaturalHeight = true,
-				MaxContentHeight = 400,
-				MinContentWidth = 100,
-			},
-		};
-
-		list.OnRowActivated += (_, args) => {
-			spin.Value = values[args.Row.GetIndex ()];
-			popover.Popdown ();
-		};
+		for (int i = 0; i < values.Length; i++) {
+			int value = values[i];
+			Gtk.Button item = Gtk.Button.NewWithLabel (value.ToString ());
+			item.AddCssClass (AdwaitaStyles.Flat);
+			item.OnClicked += (_, _) => {
+				spin.Value = value;
+				popover.Popdown ();
+			};
+			grid.Attach (item, i % PRESET_COLUMNS, i / PRESET_COLUMNS, 1, 1);
+		}
 
 		Gtk.MenuButton button = new () {
 			Popover = popover,

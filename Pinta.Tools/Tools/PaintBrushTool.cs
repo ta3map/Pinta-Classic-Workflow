@@ -151,7 +151,9 @@ public sealed class PaintBrushTool : BaseBrushTool
 		BrushStrokeArgs strokeArgs = new (strokeColor, e.Point, last_point.Value);
 
 		CancelRepeatingDraw ();
-		var invalidate_rect = active_brush.DoMouseMove (g, surf, strokeArgs);
+		var invalidate_rect = active_brush is Brushes.PlainBrush && Hardness < 100
+			? StampSoftLine (g, e.PointDouble)
+			: active_brush.DoMouseMove (g, surf, strokeArgs);
 
 		// If we draw partially offscreen, Cairo gives us a bogus
 		// dirty rectangle, so redraw everything.

@@ -213,6 +213,19 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 		chrome_manager.SetStatusBarText ($" {tool.Name}: {tool.StatusBarText}");
 	}
 
+	/// <summary>
+	/// Deactivates and activates the current tool again, so that it picks up changed settings.
+	/// </summary>
+	public void ReloadCurrentTool ()
+	{
+		if (CurrentTool is not BaseTool tool)
+			return;
+
+		DeactivateTool (tool, tool);
+		CurrentTool = null;
+		SetCurrentTool (tool);
+	}
+
 	public bool SetCurrentTool (string tool)
 	{
 		if (FindTool (tool) is not BaseTool t)

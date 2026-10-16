@@ -223,17 +223,22 @@ public sealed class EraserTool : BaseBrushTool
 	{
 		g.Antialias = UseAntialiasing ? Antialias.Subpixel : Antialias.None;
 
-		// Adding 0.5 forces cairo into the correct square:
-		// See https://bugs.launchpad.net/bugs/672232
-		g.MoveTo (start.X + 0.5, start.Y + 0.5);
-		g.LineTo (end.X + 0.5, end.Y + 0.5);
-
 		// Right-click is erase to background color, left-click is transparent
 		if (mouse_button == MouseButton.Right) {
 			g.Operator = Operator.Source;
 			g.SetSourceColor (Palette.SecondaryColor);
 		} else
 			g.Operator = Operator.Clear;
+
+		if (Hardness < 100) {
+			StampSoftLine (g, end);
+			return;
+		}
+
+		// Adding 0.5 forces cairo into the correct square:
+		// See https://bugs.launchpad.net/bugs/672232
+		g.MoveTo (start.X + 0.5, start.Y + 0.5);
+		g.LineTo (end.X + 0.5, end.Y + 0.5);
 
 		g.LineWidth = BrushWidth;
 		g.LineJoin = LineJoin.Round;

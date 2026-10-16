@@ -43,6 +43,13 @@ public abstract class BaseTool
 	protected ISettingsService Settings { get; }
 
 	public const int DEFAULT_BRUSH_WIDTH = 2;
+	public const int DEFAULT_BRUSH_HARDNESS = 75;
+
+	/// <summary>
+	/// Setting keys of the brush width and hardness, shared by all brush tools.
+	/// </summary>
+	public const string BRUSH_WIDTH_SETTING = "brush-width";
+	public const string BRUSH_HARDNESS_SETTING = "brush-hardness";
 
 	protected BaseTool (IServiceProvider services)
 	{

@@ -62,6 +62,7 @@ public static class StandardIcons
 	public const string ImageMissing = "image-missing-symbolic";
 
 	public const string OpenMenu = "open-menu-symbolic";
+	public const string Preferences = "preferences-system-symbolic";
 
 	public const string ApplicationAddon = "application-x-addon-symbolic";
 	public const string SystemSearch = "system-search-symbolic";

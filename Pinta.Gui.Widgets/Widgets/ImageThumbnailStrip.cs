@@ -11,8 +11,10 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 {
 	private const int THUMBNAIL_SIZE = 28;
 
+	private sealed record Thumbnail (Gtk.ToggleButton Button, Gtk.Picture Picture, Gtk.Label DirtyMark);
+
 	private readonly WorkspaceManager workspace;
-	private readonly Dictionary<Document, Gtk.ToggleButton> buttons = [];
+	private readonly Dictionary<Document, Thumbnail> thumbnails = [];
 
 	public ImageThumbnailStrip (WorkspaceManager workspace)
 	{
@@ -34,7 +36,15 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 		};
 		picture.SetSizeRequest (THUMBNAIL_SIZE, THUMBNAIL_SIZE);
 
-		Gtk.ToggleButton button = new () { Child = picture };
+		Gtk.Label dirtyMark = Gtk.Label.New ("*");
+		dirtyMark.Halign = Gtk.Align.End;
+		dirtyMark.Valign = Gtk.Align.Start;
+		dirtyMark.AddCssClass ("thumbnail-dirty-mark");
+
+		Gtk.Overlay overlay = new () { Child = picture };
+		overlay.AddOverlay (dirtyMark);
+
+		Gtk.ToggleButton button = new () { Child = overlay };
 		button.AddCssClass (AdwaitaStyles.Flat);
 		button.AddCssClass ("thumbnail-button");
 		button.OnClicked += (_, _) => {
@@ -45,32 +55,33 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 		doc.History.HistoryItemAdded += (_, _) => UpdateThumbnail (doc);
 		doc.History.ActionUndone += (_, _) => UpdateThumbnail (doc);
 		doc.History.ActionRedone += (_, _) => UpdateThumbnail (doc);
-		doc.IsDirtyChanged += (_, _) => UpdateTooltip (doc);
-		doc.Renamed += (_, _) => UpdateTooltip (doc);
+		doc.IsDirtyChanged += (_, _) => UpdateDirtyState (doc);
+		doc.Renamed += (_, _) => UpdateDirtyState (doc);
 
-		buttons[doc] = button;
+		thumbnails[doc] = new Thumbnail (button, picture, dirtyMark);
 		Append (button);
 
 		UpdateThumbnail (doc);
-		UpdateTooltip (doc);
+		UpdateDirtyState (doc);
 		UpdateActive ();
 	}
 
 	private void RemoveDocument (Document doc)
 	{
-		Remove (buttons[doc]);
-		buttons.Remove (doc);
+		Remove (thumbnails[doc].Button);
+		thumbnails.Remove (doc);
 	}
 
 	private void UpdateActive ()
 	{
-		foreach (var (doc, button) in buttons)
-			button.Active = doc == workspace.ActiveDocumentOrDefault;
+		foreach (var (doc, thumbnail) in thumbnails)
+			thumbnail.Button.Active = doc == workspace.ActiveDocumentOrDefault;
 	}
 
-	private void UpdateTooltip (Document doc)
+	private void UpdateDirtyState (Document doc)
 	{
-		buttons[doc].TooltipText = doc.DisplayName + (doc.IsDirty ? "*" : "");
+		thumbnails[doc].Button.TooltipText = doc.DisplayName + (doc.IsDirty ? "*" : "");
+		thumbnails[doc].DirtyMark.Visible = doc.IsDirty;
 	}
 
 	private void UpdateThumbnail (Document doc)
@@ -96,6 +107,6 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 			GLib.Bytes.New (thumbnail.GetData ()),
 			(nuint) thumbnail.Stride);
 
-		((Gtk.Picture) buttons[doc].Child!).SetPaintable (texture);
+		thumbnails[doc].Picture.SetPaintable (texture);
 	}
 }

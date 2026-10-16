@@ -10,6 +10,9 @@ internal static class SettingNames
 
 	internal const string PAINT_BRUSH_BRUSH = "paint-brush-brush";
 
+	internal const string BRUSH_WIDTH = Pinta.Core.BaseTool.BRUSH_WIDTH_SETTING;
+	internal const string BRUSH_HARDNESS = Pinta.Core.BaseTool.BRUSH_HARDNESS_SETTING;
+
 	internal const string TEXT_FONT = "text-font";
 	internal const string TEXT_VARIANT = "text-variant";
 	internal const string TEXT_WEIGHT = "text-weight";
@@ -50,9 +53,6 @@ internal static class SettingNames
 
 	internal static string FloodToolFillTolerance (FloodTool tool)
 		=> $"{tool.GetType ().Name.ToLowerInvariant ()}-fill-tolerance";
-
-	internal static string BrushWidth (BaseBrushTool tool)
-		=> $"{tool.GetType ().Name.ToLowerInvariant ()}-brush-width";
 
 	internal static string BrushWidth (string prefix)
 		=> $"{prefix}-brush-width";

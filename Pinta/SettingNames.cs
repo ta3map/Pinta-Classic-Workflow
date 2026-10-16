@@ -12,6 +12,8 @@ internal static class SettingNames
 	internal const string WINDOW_SIZE_WIDTH = "window-size-width";
 	internal const string WINDOW_SIZE_HEIGHT = "window-size-height";
 	internal const string RULER_SHOWN = "ruler-shown";
+	internal const string PIXEL_GRID_SHOWN = "pixel-grid-shown";
+	internal const string PAD_INACTIVE_OPACITY = "pad-inactive-opacity";
 	internal const string IMAGE_TABS_SHOWN = "image-tabs-shown";
 	internal const string TOOLBAR_SHOWN = "toolbar-shown";
 	internal const string STATUSBAR_SHOWN = "statusbar-shown";
