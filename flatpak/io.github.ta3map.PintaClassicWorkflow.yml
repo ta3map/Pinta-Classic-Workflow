@@ -25,10 +25,11 @@ modules:
   - name: pinta
     buildsystem: simple
     build-options:
-      append-path: /usr/lib/sdk/dotnet8/bin
+      prepend-path: /usr/lib/sdk/dotnet8/bin
       build-args:
         - --share=network
       env:
+        DOTNET_ROOT: /usr/lib/sdk/dotnet8/lib
         DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
         DOTNET_NOLOGO: 'true'
     build-commands:
