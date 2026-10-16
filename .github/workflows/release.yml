@@ -17,7 +17,19 @@ on:
         default: ''
 
 jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 9.0.x
+    - name: Verify code formatting
+      # Ignore warning CA1416 for unavailable platform-specific code, since this is unrelated to formatting.
+      run: dotnet format Pinta.sln --verify-no-changes --exclude-diagnostics CA1416
+
   flatpak:
+    needs: format
     if: inputs.targets != 'linux'
     runs-on: ubuntu-24.04
     container:
@@ -32,6 +44,7 @@ jobs:
         cache-key: flatpak-builder-${{ github.sha }}
 
   gtk-bundle:
+    needs: format
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
@@ -118,6 +131,7 @@ jobs:
         if-no-files-found: error
 
   windows:
+    needs: format
     if: inputs.targets != 'linux'
     strategy:
       matrix:
