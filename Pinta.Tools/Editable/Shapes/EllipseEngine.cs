@@ -25,7 +25,6 @@
 // THE SOFTWARE.
 
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using Cairo;
 using Pinta.Core;
@@ -74,133 +73,21 @@ public sealed class EllipseEngine : ShapeEngine
 		return new EllipseEngine (this);
 	}
 
-	private static bool IsPerfectRectangle (
-		PointD cp0,
-		PointD cp1,
-		PointD cp2,
-		PointD cp3)
-	{
-		if (cp0.X == cp1.X) {
-			if (cp0.Y == cp3.Y && cp1.Y == cp2.Y && cp2.X == cp3.X) {
-				return true;
-			}
-		} else if (cp0.Y == cp1.Y) {
-			if (cp0.X == cp3.X && cp1.X == cp2.X && cp2.Y == cp3.Y) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	/// <summary>
 	/// Generate each point in an elliptic shape and store the result in GeneratedPoints.
 	/// <param name="brush_width">The width of the brush that will be used to draw the shape.</param>
 	/// </summary>
 	public override void GeneratePoints (int brush_width)
 	{
-		var points = CreatePoints ().ToImmutableArray ();
-		var fallbackPoints = CreateFallbackPoints (points);
-		GeneratedPoints = [.. points, .. fallbackPoints];
-	}
-
-	private IEnumerable<GeneratedPoint> CreateFallbackPoints (ImmutableArray<GeneratedPoint> points)
-	{
-		//Make sure there are now generated points; otherwise, one of the ellipse conditions was not met.
-		if (points.Length != 0)
-			yield break;
-
-		//Something went wrong. Just copy the control points. Note: it's important that there be many generated points even if
-		//everything is just a linear connection of control points. This is because the generated points are used in the check
-		//that determines if the mouse clicks on the shape.
-
-		//Go through each control point.
-		for (int currentNum = 0; currentNum < ControlPoints.Count; ++currentNum) {
-			//Determine the next control point.
-
-			int nextNum = currentNum + 1;
-
-			if (nextNum >= ControlPoints.Count)
-				nextNum = 0;
-
-			PointD currentPoint = ControlPoints[currentNum].Position;
-			PointD nextPoint = ControlPoints[nextNum].Position;
-
-			//Lerp from the current point to the next point.
-			for (float lerpPos = 0.0f; lerpPos < 1.0f; lerpPos += 0.01f)
-				yield return new GeneratedPoint (
-					Utility.Lerp (currentPoint, nextPoint, lerpPos),
-					currentNum);
-		}
+		GeneratedPoints = [.. CreatePoints ()];
 	}
 
 	private IEnumerable<GeneratedPoint> CreatePoints ()
 	{
-		//An ellipse requires exactly 4 control points in order to draw anything.
-		if (ControlPoints.Count != 4)
-			yield break;
+		//The ellipse fills the bounding rectangle of the control points.
+		PointD topLeft = new (ControlPoints.Min (p => p.Position.X), ControlPoints.Min (p => p.Position.Y));
+		PointD bottomRight = new (ControlPoints.Max (p => p.Position.X), ControlPoints.Max (p => p.Position.Y));
 
-		//This is mostly for time efficiency/optimization, but it can also help readability.
-		PointD
-			cp0 = ControlPoints[0].Position,
-			cp1 = ControlPoints[1].Position,
-			cp2 = ControlPoints[2].Position,
-			cp3 = ControlPoints[3].Position;
-
-		//An ellipse also requires that all 4 control points compose a perfect rectangle parallel/perpendicular to the window.
-		//So, confirm that it is indeed a perfect rectangle.
-		bool perfectRectangle = IsPerfectRectangle (cp0, cp1, cp2, cp3);
-
-		if (!perfectRectangle)
-			yield break;
-
-		//It is expected that the 4 control points always form a perfect rectangle parallel/perpendicular to the window.
-		//However, we must first determine which control point is at the top left and which is at the bottom right.
-		//It is also expected that the 4 control points are adjacent to each other by index and position, e.g.: 0, 1, 2, 3.
-
-		PointD topLeft = cp0;
-		PointD bottomRight = cp0;
-
-		//Compare the second point with the first.
-		if (cp1.X < topLeft.X || cp1.Y < topLeft.Y) {
-			//The second point is either more left or more up than the first.
-
-			topLeft = cp1;
-
-			//Compare the third point with the second.
-			if (cp2.X < topLeft.X || cp2.Y < topLeft.Y) {
-				//The third point is either more left or more up than the second.
-
-				topLeft = cp2;
-
-				//The first point remains the bottom right.
-			} else {
-				//The third point is neither more left nor more up than the second.
-
-				//The second point remains the top left.
-
-				bottomRight = cp3;
-			}
-		} else {
-			//The second point is neither more left nor more up than the first.
-
-			PointD secondPoint = cp1;
-
-			//Compare the third point with the second.
-			if (cp2.X < secondPoint.X || cp2.Y < secondPoint.Y) {
-				//The third point is either more left or more up than the second.
-
-				topLeft = cp3;
-				bottomRight = cp1;
-			} else {
-				//The third point is neither more left nor more up than the second.
-
-				//The first point remains the top left.
-
-				bottomRight = cp2;
-			}
-		}
-
-		//Now we can calculate the width and height.
 		double width = bottomRight.X - topLeft.X;
 		double height = bottomRight.Y - topLeft.Y;
 

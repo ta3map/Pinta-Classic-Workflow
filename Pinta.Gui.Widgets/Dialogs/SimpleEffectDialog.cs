@@ -123,11 +123,11 @@ public sealed class SimpleEffectDialog : Gtk.Dialog
 		// Hookup event handling for live preview.
 		dialog.EffectDataChanged += (o, e) => effect.EffectData.FirePropertyChanged (e.PropertyName);
 
-		Gtk.ResponseType response = await dialog.RunAsync ();
+		bool rendered = await PintaCore.LivePreview.RunDialog (dialog);
 
 		dialog.Destroy ();
 
-		return Gtk.ResponseType.Ok == response;
+		return rendered;
 	}
 
 	public event PropertyChangedEventHandler? EffectDataChanged;

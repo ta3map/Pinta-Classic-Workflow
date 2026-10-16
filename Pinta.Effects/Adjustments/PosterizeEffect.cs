@@ -47,11 +47,11 @@ public sealed class PosterizeEffect : BaseEffect
 			EffectData = Data, // TODO: Delegate `EffectData` changes to event handlers or similar
 		};
 
-		Gtk.ResponseType response = await dialog.RunAsync ();
+		bool rendered = await PintaCore.LivePreview.RunDialog (dialog);
 
 		dialog.Destroy ();
 
-		return Gtk.ResponseType.Ok == response;
+		return rendered;
 	}
 
 	public override void Render (ImageSurface src, ImageSurface dest, ReadOnlySpan<RectangleI> rois)

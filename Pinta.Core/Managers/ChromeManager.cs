@@ -50,7 +50,7 @@ public sealed class ChromeManager : IChromeService
 	// but it would be nice to rewrite it to provably non-null.
 	public Gtk.Application Application { get; private set; } = null!;
 	public Gtk.Window MainWindow { get; private set; } = null!;
-	private IProgressDialog progress_dialog = null!;
+	private IProgressIndicator progress = null!;
 	private ErrorDialogHandler error_dialog_handler = null!;
 	private MessageDialogHandler message_dialog_handler = null!;
 	private SimpleEffectDialogHandler simple_effect_dialog_handler = null!;
@@ -60,7 +60,7 @@ public sealed class ChromeManager : IChromeService
 	public Gtk.Widget ToolBox { get; private set; } = null!;
 	public Gtk.Box StatusBar { get; private set; } = null!;
 
-	public IProgressDialog ProgressDialog => progress_dialog;
+	public IProgressIndicator Progress => progress;
 	public Gio.Menu AdjustmentsMenu { get; private set; } = null!;
 	public Gio.Menu EffectsMenu { get; private set; } = null!;
 
@@ -122,10 +122,34 @@ public sealed class ChromeManager : IChromeService
 		EffectsMenu = effects_menu;
 	}
 
-	public void InitializeProgessDialog (IProgressDialog progressDialog)
+	public void InitializeProgressIndicator (IProgressIndicator progressIndicator)
 	{
-		progress_dialog = progressDialog;
+		progress = progressIndicator;
 	}
+
+	/// <summary>
+	/// Runs heavy work off the UI thread, showing the status bar indicator and blocking input to the main window meanwhile.
+	/// The work must not touch GTK widgets, document events or the history.
+	/// </summary>
+	public async Task<T> RunInBackground<T> (string text, Func<T> work)
+	{
+		progress.Text = text;
+		progress.Pulse ();
+		progress.Show ();
+		MainWindow.Sensitive = false;
+		MainWindowBusy = true;
+
+		try {
+			return await Task.Run (work);
+		} finally {
+			progress.Hide ();
+			MainWindow.Sensitive = true;
+			MainWindowBusy = false;
+		}
+	}
+
+	public Task RunInBackground (string text, Action work)
+		=> RunInBackground (text, () => { work (); return true; });
 
 	public void InitializeErrorDialogHandler (ErrorDialogHandler handler)
 	{
@@ -193,14 +217,19 @@ public sealed class ChromeManager : IChromeService
 	public event EventHandler<TextChangedEventArgs>? StatusBarTextChanged;
 }
 
-public interface IProgressDialog
+public interface IProgressIndicator
 {
 	void Show ();
 	void Hide ();
-	string Title { get; set; }
 	string Text { get; set; }
+	/// <summary>
+	/// Shows the fraction of completed work, hiding the indicator once the work is complete.
+	/// </summary>
 	double Progress { get; set; }
-	event EventHandler Canceled;
+	/// <summary>
+	/// Shows that work is running without a known fraction of completion.
+	/// </summary>
+	void Pulse ();
 }
 
 public delegate Task<ErrorDialogResponse> ErrorDialogHandler (Gtk.Window parent, string message, string body, string details);

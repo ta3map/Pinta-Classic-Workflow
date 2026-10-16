@@ -48,6 +48,8 @@ public sealed class PintaCanvas : Gtk.Picture
 	private Gsk.Path? selection_path;
 	private readonly uint selection_animation_timer_id;
 	private float selection_animation_dash_offset;
+	private double viewport_origin_x;
+	private double viewport_origin_y;
 
 	private readonly ToolManager tools;
 
@@ -67,6 +69,7 @@ public sealed class PintaCanvas : Gtk.Picture
 			enableBackgroundPattern: false);
 
 		document.Workspace.ViewSizeChanged += OnViewSizeChanged;
+		OnViewSizeChanged (null, System.EventArgs.Empty);
 		document.Workspace.CanvasInvalidated += OnCanvasInvalidated;
 		document.SelectionChanged += (_, _) => QueueSelectionUpdate ();
 
@@ -476,6 +479,33 @@ public sealed class PintaCanvas : Gtk.Picture
 	{
 		Size viewSize = document.Workspace.ViewSize;
 		SetSizeRequest (viewSize.Width, viewSize.Height);
+	}
+
+	/// <summary>
+	/// Surround the image with free space of the visible area's size, so that any image point
+	/// can be scrolled under any cursor position (e.g. when zooming to the mouse).
+	/// The image stays at the same place on screen when the visible area is resized or moved (e.g. by docking a pad).
+	/// </summary>
+	public void UpdateMargins ()
+	{
+		Gtk.Viewport view = (Gtk.Viewport) Parent!;
+		view.TranslateCoordinates ((Gtk.Widget) view.GetRoot ()!, 0, 0, out double originX, out double originY);
+
+		UpdateMargin (view.Hadjustment!, MarginStart, originX - viewport_origin_x, document.Workspace.ViewSize.Width, m => MarginStart = MarginEnd = m);
+		UpdateMargin (view.Vadjustment!, MarginTop, originY - viewport_origin_y, document.Workspace.ViewSize.Height, m => MarginTop = MarginBottom = m);
+
+		viewport_origin_x = originX;
+		viewport_origin_y = originY;
+	}
+
+	private static void UpdateMargin (Gtk.Adjustment adjustment, int oldMargin, double originShift, int viewSize, System.Action<int> setMargin)
+	{
+		int margin = (int) adjustment.PageSize;
+		setMargin (margin);
+
+		// The viewport updates the scroll range only on the next layout, so set it now to allow the new scroll position.
+		adjustment.Upper = viewSize + 2 * margin;
+		adjustment.Value += margin - oldMargin + originShift;
 	}
 
 	#region Selection outline animation

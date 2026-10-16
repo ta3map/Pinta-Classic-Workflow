@@ -14,12 +14,16 @@ public sealed class FloatingPad : Gtk.Box
 	private const int DEFAULT_OFFSET = 8;
 	private const int RESIZE_BORDER = 6;
 
-	private double inactive_opacity = 0.8;
+	private readonly HoverOpacity hover_opacity;
 	private int default_width;
 	private int default_height;
+	private int offset_x = DEFAULT_OFFSET;
+	private int offset_y = DEFAULT_OFFSET;
+	private int floating_height;
 
 	private readonly string unique_name;
 	private readonly Gtk.Box content;
+	private readonly Gtk.ToggleButton dock_button;
 	private double drag_start_x;
 	private double drag_start_y;
 	private int drag_start_offset_x;
@@ -32,6 +36,7 @@ public sealed class FloatingPad : Gtk.Box
 	private int resize_edge_y;
 
 	public event EventHandler? CloseClicked;
+	public event EventHandler? DockedChanged;
 
 	public FloatingPad (
 		string uniqueName,
@@ -49,10 +54,21 @@ public sealed class FloatingPad : Gtk.Box
 		closeButton.AddCssClass (AdwaitaStyles.Flat);
 		closeButton.OnClicked += (_, _) => CloseClicked?.Invoke (this, EventArgs.Empty);
 
-		Gtk.Box header = GtkExtensions.BoxHorizontal ([label, closeButton]);
+		Gtk.ToggleButton dockButton = new () {
+			IconName = StandardIcons.ViewPin,
+			TooltipText = Translations.GetString ("Dock to the window edge"),
+		};
+		dockButton.AddCssClass (AdwaitaStyles.Flat);
+		dockButton.OnToggled += (_, _) => ApplyDocked ();
+
+		Gtk.Box header = GtkExtensions.BoxHorizontal ([label, dockButton, closeButton]);
 		header.AddCssClass ("floating-pad-header");
 
 		Gtk.GestureDrag drag = CreateDrag (header);
+		drag.OnDragBegin += (_, _) => {
+			if (Docked)
+				drag.SetState (Gtk.EventSequenceState.Denied);
+		};
 		drag.OnDragUpdate += (_, args) => {
 			GetDragDelta (header, drag, args.OffsetX, args.OffsetY, out int dx, out int dy);
 			MoveTo (drag_start_offset_x + dx * DirectionX, drag_start_offset_y + dy * DirectionY);
@@ -74,10 +90,10 @@ public sealed class FloatingPad : Gtk.Box
 
 		Gtk.EventControllerMotion motion = Gtk.EventControllerMotion.New ();
 		motion.OnEnter += (_, _) => {
-			Opacity = 1;
-			InsertBefore (GetParent ()!, null);
+			// Raise above the other floating pads; a docked pad's order is fixed by its dock.
+			if (!Docked)
+				InsertBefore (GetParent ()!, null);
 		};
-		motion.OnLeave += (_, _) => Opacity = inactive_opacity;
 		motion.OnMotion += (_, args) => {
 			GetEdges (args.X, args.Y, out int edgeX, out int edgeY);
 			SetCursorFromName (GetResizeCursor (edgeX, edgeY));
@@ -94,7 +110,8 @@ public sealed class FloatingPad : Gtk.Box
 
 		Halign = halign;
 		Valign = valign;
-		Opacity = inactive_opacity;
+		FloatingHalign = halign;
+		FloatingValign = valign;
 		AddCssClass ("floating-pad");
 		AddController (motion);
 
@@ -106,22 +123,63 @@ public sealed class FloatingPad : Gtk.Box
 
 		unique_name = uniqueName;
 		content = contentBox;
-		OffsetX = DEFAULT_OFFSET;
-		OffsetY = DEFAULT_OFFSET;
+		dock_button = dockButton;
+		hover_opacity = new HoverOpacity (this) { InactiveOpacity = 0.8 };
+		ApplyMargins ();
 	}
 
 	public bool Resizable { get; init; } = true;
 
 	/// <summary>
+	/// The corner the pad floats in. It also gives the dock: the left or right edge, at the top or bottom.
+	/// </summary>
+	public Gtk.Align FloatingHalign { get; }
+	public Gtk.Align FloatingValign { get; }
+
+	/// <summary>
+	/// Whether the pad is docked to the window edge instead of floating over the canvas.
+	/// </summary>
+	public bool Docked {
+		get => dock_button.Active;
+		set => dock_button.Active = value;
+	}
+
+	// A docked pad fills its part of the dock column, keeping the floating width as its minimum width.
+	private void ApplyDocked ()
+	{
+		if (Docked) {
+			floating_height = HeightRequest;
+			AddCssClass ("docked");
+		} else {
+			RemoveCssClass ("docked");
+		}
+
+		Halign = Docked ? Gtk.Align.Fill : FloatingHalign;
+		Valign = Docked ? Gtk.Align.Fill : FloatingValign;
+		Vexpand = Docked;
+		SetSizeRequest (WidthRequest, Docked ? -1 : floating_height);
+		dock_button.IconName = Docked ? StandardIcons.WindowRestore : StandardIcons.ViewPin;
+		dock_button.TooltipText = Docked ? Translations.GetString ("Undock") : Translations.GetString ("Dock to the window edge");
+		ApplyMargins ();
+		DockedChanged?.Invoke (this, EventArgs.Empty);
+	}
+
+	/// <summary>
 	/// The opacity of the pad while the pointer is outside of it.
 	/// </summary>
 	public double InactiveOpacity {
-		get => inactive_opacity;
-		set {
-			inactive_opacity = value;
-			Opacity = value;
-		}
+		get => hover_opacity.InactiveOpacity;
+		set => hover_opacity.InactiveOpacity = value;
 	}
+
+	/// <summary>
+	/// Panels lying over the top and bottom of the pad area: the pad is kept between them.
+	/// </summary>
+	public Gtk.Widget? TopPanel { get; set; }
+	public Gtk.Widget? BottomPanel { get; set; }
+
+	private int InsetTop => TopPanel?.GetVisibleHeight () ?? 0;
+	private int InsetBottom => BottomPanel?.GetVisibleHeight () ?? 0;
 
 	/// <summary>
 	/// Moves the pad back to its corner and restores its original size.
@@ -133,33 +191,52 @@ public sealed class FloatingPad : Gtk.Box
 		SetSizeRequest (default_width, default_height);
 	}
 
-	private int DirectionX => Halign == Gtk.Align.End ? -1 : 1;
-	private int DirectionY => Valign == Gtk.Align.End ? -1 : 1;
+	private int DirectionX => FloatingHalign == Gtk.Align.End ? -1 : 1;
+	private int DirectionY => FloatingValign == Gtk.Align.End ? -1 : 1;
 
 	private int OffsetX {
-		get => Halign == Gtk.Align.End ? MarginEnd : MarginStart;
+		get => offset_x;
 		set {
-			MarginStart = Halign == Gtk.Align.End ? 0 : value;
-			MarginEnd = Halign == Gtk.Align.End ? value : 0;
+			offset_x = value;
+			ApplyMargins ();
 		}
 	}
 
 	private int OffsetY {
-		get => Valign == Gtk.Align.End ? MarginBottom : MarginTop;
+		get => offset_y;
 		set {
-			MarginTop = Valign == Gtk.Align.End ? 0 : value;
-			MarginBottom = Valign == Gtk.Align.End ? value : 0;
+			offset_y = value;
+			ApplyMargins ();
 		}
+	}
+
+	// A docked pad is laid out by its dock, so the offsets only apply while floating.
+	private void ApplyMargins ()
+	{
+		int x = Docked ? 0 : offset_x;
+		int top = Docked ? 0 : offset_y + InsetTop;
+		int bottom = Docked ? 0 : offset_y + InsetBottom;
+		bool right = FloatingHalign == Gtk.Align.End;
+		bool down = FloatingValign == Gtk.Align.End;
+
+		MarginStart = right ? 0 : x;
+		MarginEnd = right ? x : 0;
+		MarginTop = down ? 0 : top;
+		MarginBottom = down ? bottom : 0;
 	}
 
 	/// <summary>
 	/// -1 / 1 when the point is near the left / right (top / bottom) edge, otherwise 0.
+	/// A docked pad is only resized by its inner edge, facing the canvas.
 	/// </summary>
 	private void GetEdges (double x, double y, out int edgeX, out int edgeY)
 	{
 		int border = Resizable ? RESIZE_BORDER : 0;
+		int innerEdge = FloatingHalign == Gtk.Align.End ? -1 : 1;
 		edgeX = Convert.ToInt32 (x > GetWidth () - border) - Convert.ToInt32 (x < border);
 		edgeY = Convert.ToInt32 (y > GetHeight () - border) - Convert.ToInt32 (y < border);
+		edgeX = Docked && edgeX != innerEdge ? 0 : edgeX;
+		edgeY = Docked ? 0 : edgeY;
 	}
 
 	private static string? GetResizeCursor (int edgeX, int edgeY) => (edgeX, edgeY) switch {
@@ -200,7 +277,7 @@ public sealed class FloatingPad : Gtk.Box
 	{
 		Gtk.Widget area = GetParent ()!;
 		OffsetX = Math.Clamp (x, 0, Math.Max (0, area.GetWidth () - GetWidth ()));
-		OffsetY = Math.Clamp (y, 0, Math.Max (0, area.GetHeight () - GetHeight ()));
+		OffsetY = Math.Clamp (y, 0, Math.Max (0, area.GetHeight () - InsetTop - InsetBottom - GetHeight ()));
 	}
 
 	private void ResizeBy (int dx, int dy)
@@ -215,9 +292,12 @@ public sealed class FloatingPad : Gtk.Box
 		int top = drag_start_top + (resize_edge_y < 0 ? drag_start_height - height : 0);
 
 		Gtk.Widget area = GetParent ()!;
-		SetSizeRequest (width, height);
-		OffsetX = Halign == Gtk.Align.End ? area.GetWidth () - left - width : left;
-		OffsetY = Valign == Gtk.Align.End ? area.GetHeight () - top - height : top;
+		SetSizeRequest (width, Docked ? -1 : height);
+		if (Docked)
+			return;
+
+		OffsetX = FloatingHalign == Gtk.Align.End ? area.GetWidth () - left - width : left;
+		OffsetY = FloatingValign == Gtk.Align.End ? area.GetHeight () - InsetBottom - top - height : top - InsetTop;
 	}
 
 	/// <summary>
@@ -239,13 +319,15 @@ public sealed class FloatingPad : Gtk.Box
 		SetSizeRequest (
 			Resizable ? settings.GetSetting ($"pad-{unique_name}-width", WidthRequest) : WidthRequest,
 			Resizable ? settings.GetSetting ($"pad-{unique_name}-height", HeightRequest) : HeightRequest);
+		Docked = settings.GetSetting ($"pad-{unique_name}-docked", false);
 	}
 
 	public void SaveSettings (ISettingsService settings)
 	{
+		settings.PutSetting ($"pad-{unique_name}-docked", Docked);
 		settings.PutSetting ($"pad-{unique_name}-x", OffsetX);
 		settings.PutSetting ($"pad-{unique_name}-y", OffsetY);
 		settings.PutSetting ($"pad-{unique_name}-width", WidthRequest);
-		settings.PutSetting ($"pad-{unique_name}-height", HeightRequest);
+		settings.PutSetting ($"pad-{unique_name}-height", Docked ? floating_height : HeightRequest);
 	}
 }

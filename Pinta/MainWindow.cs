@@ -37,6 +37,14 @@ namespace Pinta;
 internal sealed class MainWindow
 {
 	private const int DEFAULT_PAD_OPACITY = 80;
+	private const int DEFAULT_PANEL_OPACITY = 100;
+	private const string DEFAULT_WORKSPACE_COLOR = "#9A9996";
+
+	// The background around the image, the same for the light and dark themes.
+	private readonly Gtk.CssProvider workspace_style = Gtk.CssProvider.New ();
+
+	private void ApplyWorkspaceColor (string color)
+		=> workspace_style.LoadFromString ($".workspace {{ background-color: {color}; }}");
 
 	readonly Adw.Application app;
 	// NRT - Created in OnActivated
@@ -74,7 +82,6 @@ internal sealed class MainWindow
 		// Initialize interface things
 		_ = new ActionHandlers ();
 
-		PintaCore.Chrome.InitializeProgessDialog (new ProgressDialog (PintaCore.Chrome));
 		PintaCore.Chrome.InitializeErrorDialogHandler (ErrorDialog.ShowError);
 		PintaCore.Chrome.InitializeMessageDialog (ErrorDialog.ShowMessage);
 		PintaCore.Chrome.InitializeSimpleEffectDialog (SimpleEffectDialog.Launch);
@@ -230,6 +237,9 @@ internal sealed class MainWindow
 			}
 		}
 
+		if (args.GetKey ().Value == Gdk.Constants.KEY_Escape)
+			PintaCore.Tools.Commit ();
+
 		// If the canvas/tool didn't consume it, see if its a toolbox shortcut
 		if (!args.State.HasModifierKey () && PintaCore.Tools.SetCurrentTool (args.GetKey ()))
 			return true;
@@ -331,8 +341,9 @@ internal sealed class MainWindow
 		CreateMainToolBar ();
 		CreateToolToolBar ();
 
-		CreatePanels ();
+		// The status bar is created before the pads, so that the pads float over it.
 		CreateStatusBar ();
+		CreateDockAndPads ();
 
 		app.AddWindow (window_shell.Window);
 
@@ -451,6 +462,9 @@ internal sealed class MainWindow
 			BrushHardness: PintaCore.Settings.GetSetting (BaseTool.BRUSH_HARDNESS_SETTING, BaseTool.DEFAULT_BRUSH_HARDNESS),
 			PixelGridZoom: PintaCore.CanvasGrid.PixelGridMinZoom,
 			PadOpacity: PintaCore.Settings.GetSetting (SettingNames.PAD_INACTIVE_OPACITY, DEFAULT_PAD_OPACITY),
+			TopPanelsOpacity: PintaCore.Settings.GetSetting (SettingNames.TOP_PANELS_INACTIVE_OPACITY, DEFAULT_PANEL_OPACITY),
+			StatusBarOpacity: PintaCore.Settings.GetSetting (SettingNames.STATUSBAR_INACTIVE_OPACITY, DEFAULT_PANEL_OPACITY),
+			WorkspaceColor: PintaCore.Settings.GetSetting (SettingNames.WORKSPACE_COLOR, DEFAULT_WORKSPACE_COLOR),
 			ResetLayout: false);
 
 		using SettingsDialog dialog = new (PintaCore.Chrome, initial);
@@ -474,6 +488,14 @@ internal sealed class MainWindow
 
 		PintaCore.CanvasGrid.PixelGridMinZoom = result.PixelGridZoom;
 		PintaCore.CanvasGrid.SaveGridSettings ();
+
+		PintaCore.Settings.PutSetting (SettingNames.WORKSPACE_COLOR, result.WorkspaceColor);
+		ApplyWorkspaceColor (result.WorkspaceColor);
+
+		PintaCore.Settings.PutSetting (SettingNames.TOP_PANELS_INACTIVE_OPACITY, result.TopPanelsOpacity);
+		PintaCore.Settings.PutSetting (SettingNames.STATUSBAR_INACTIVE_OPACITY, result.StatusBarOpacity);
+		window_shell.TopPanelsOpacity.InactiveOpacity = result.TopPanelsOpacity / 100.0;
+		window_shell.StatusBarOpacity.InactiveOpacity = result.StatusBarOpacity / 100.0;
 
 		PintaCore.Settings.PutSetting (SettingNames.PAD_INACTIVE_OPACITY, result.PadOpacity);
 		foreach (FloatingPad pad in pads) {
@@ -504,18 +526,16 @@ internal sealed class MainWindow
 	{
 		Gtk.Box statusbar = window_shell.CreateStatusBar ("statusbar");
 
+		StatusBarProgress progress = new ();
+		statusbar.Append (progress);
+		PintaCore.Chrome.InitializeProgressIndicator (progress);
+
 		PintaCore.Actions.CreateStatusBar (statusbar, PintaCore.Workspace);
 
 		PintaCore.Chrome.InitializeStatusBar (statusbar);
 	}
 
-	private void CreatePanels ()
-	{
-		Gtk.Box panel_container = window_shell.CreateWorkspace ();
-		CreateDockAndPads (panel_container);
-	}
-
-	private void CreateDockAndPads (Gtk.Box container)
+	private void CreateDockAndPads ()
 	{
 		ToolBoxWidget toolbox = new (PintaCore.Tools);
 
@@ -549,19 +569,15 @@ internal sealed class MainWindow
 		BindPad (layers_pad, PintaCore.Actions.View.Layers);
 		BindPad (colors_pad, PintaCore.Actions.View.Colors);
 
-		notebook = new DockNotebook ();
-
-		Gtk.Overlay overlay = new () {
-			Child = notebook,
+		notebook = new DockNotebook {
 			Hexpand = true,
 			Vexpand = true,
 		};
+		window_shell.CreateWorkspace (notebook);
 
 		pads = [tools_pad, history_pad, layers_pad, colors_pad];
 		foreach (FloatingPad pad in pads)
-			overlay.AddOverlay (pad);
-
-		container.Append (overlay);
+			window_shell.AddPad (pad);
 	}
 
 	private static void BindPad (FloatingPad pad, ToggleCommand command)
@@ -577,6 +593,12 @@ internal sealed class MainWindow
 			pad.LoadSettings (PintaCore.Settings);
 			pad.InactiveOpacity = padOpacity;
 		}
+
+		Gtk.StyleContext.AddProviderForDisplay (window_shell.Window.GetDisplay (), workspace_style, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
+		ApplyWorkspaceColor (PintaCore.Settings.GetSetting (SettingNames.WORKSPACE_COLOR, DEFAULT_WORKSPACE_COLOR));
+
+		window_shell.TopPanelsOpacity.InactiveOpacity = PintaCore.Settings.GetSetting (SettingNames.TOP_PANELS_INACTIVE_OPACITY, DEFAULT_PANEL_OPACITY) / 100.0;
+		window_shell.StatusBarOpacity.InactiveOpacity = PintaCore.Settings.GetSetting (SettingNames.STATUSBAR_INACTIVE_OPACITY, DEFAULT_PANEL_OPACITY) / 100.0;
 
 		colors_widget.LoadSettings (PintaCore.Settings);
 
@@ -650,18 +672,21 @@ internal sealed class MainWindow
 		if (args.Value.GetBoxed (Gdk.FileList.GetGType ()) is not Gdk.FileList file_list)
 			return false;
 
-		foreach (Gio.File file in file_list.GetFilesHelper ()) {
-			PintaCore.Workspace.OpenFile (file);
+		OpenDroppedFiles (file_list);
+		return true;
+	}
 
-			if (file.GetUriScheme () is string scheme &&
+	private static async void OpenDroppedFiles (Gdk.FileList file_list)
+	{
+		foreach (Gio.File file in file_list.GetFilesHelper ()) {
+			if (await PintaCore.Workspace.OpenFile (file) &&
+			   file.GetUriScheme () is string scheme &&
 			   (scheme.StartsWith ("http") || scheme.StartsWith ("ftp"))) {
 				// If the file was likely dragged from a browser, mark as not having a file
 				// so that the user must choose a new file to save to instead of hitting a permission error.
 				PintaCore.Workspace.ActiveDocument.ClearFileReference ();
 			}
 		}
-
-		return true;
 	}
 
 	private void ZoomToSelection_Activated (object sender, EventArgs e)
@@ -696,6 +721,8 @@ internal sealed class MainWindow
 			PintaCore.Actions.View.ResumeZoomUpdate ();
 		}
 
+		Size image_size = PintaCore.Workspace.ImageSize;
+		PintaCore.Workspace.ActiveWorkspace.RecenterView (new PointD (image_size.Width / 2.0, image_size.Height / 2.0));
 		PintaCore.Actions.View.ZoomToWindowActivated = true;
 	}
 	#endregion

@@ -135,7 +135,7 @@ public sealed class RoundedLineEditEngine : BaseEditEngine
 			owner.EditEngine.BrushWidth,
 			LineCap.Butt);
 
-		AddRectanglePoints (ctrlKey, clickedOnControlPoint, newEngine, prevSelPoint);
+		AddFramePoints (ctrlKey, clickedOnControlPoint, newEngine, prevSelPoint);
 
 		//Set the new shape's DashPattern option.
 		newEngine.DashPattern = dash_pattern_box.ComboBox!.ComboBox.GetActiveText ()!; // NRT - Code assumes this is not-null
@@ -143,11 +143,10 @@ public sealed class RoundedLineEditEngine : BaseEditEngine
 		return newEngine;
 	}
 
+	protected override bool IsFrame => true;
+
 	protected override void MovePoint (List<ControlPoint> controlPoints)
-	{
-		MoveRectangularPoint (controlPoints);
-		base.MovePoint (controlPoints);
-	}
+		=> MoveFramePoint (controlPoints);
 
 	public override void UpdateToolbarSettings (ShapeEngine engine)
 	{

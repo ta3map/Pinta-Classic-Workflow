@@ -44,6 +44,7 @@ public sealed class CanvasWindow : Gtk.Grid
 	private readonly Gtk.GestureZoom gesture_zoom;
 
 	private PointD current_canvas_pos = PointD.Zero;
+	private PointD current_visible_pos = PointD.Zero;
 	private double cumulative_zoom_amount;
 	private double last_scale_delta;
 
@@ -79,6 +80,7 @@ public sealed class CanvasWindow : Gtk.Grid
 		};
 
 		Gtk.Viewport viewPort = new ();
+		viewPort.AddCssClass ("workspace");
 		viewPort.AddController (scrollController);
 		viewPort.Child = canvas;
 
@@ -152,6 +154,10 @@ public sealed class CanvasWindow : Gtk.Grid
 		scrolledWindow.Hadjustment!.OnChanged += UpdateRulerRange;
 		scrolledWindow.Vadjustment!.OnChanged += UpdateRulerRange;
 
+		// The free space around a large image depends on the size of the visible area.
+		scrolledWindow.Hadjustment!.OnChanged += (_, _) => canvas.UpdateMargins ();
+		scrolledWindow.Vadjustment!.OnChanged += (_, _) => canvas.UpdateMargins ();
+
 		// Update the ruler when scrolling around.
 		scrolledWindow.Hadjustment!.OnValueChanged += UpdateRulerRange;
 		scrolledWindow.Vadjustment!.OnValueChanged += UpdateRulerRange;
@@ -186,6 +192,7 @@ public sealed class CanvasWindow : Gtk.Grid
 		// These coordinates are relative to our grid widget, so transform into the child image
 		// view's coordinates, and then to the canvas coordinates.
 		this.TranslateCoordinates (Canvas, rootPoint, out PointD viewPos);
+		this.TranslateCoordinates (scrolled_window.Child!, rootPoint, out current_visible_pos);
 
 		current_canvas_pos = document.Workspace.ViewPointToCanvas (viewPos);
 		horizontal_ruler.Position = current_canvas_pos.X;
@@ -219,7 +226,7 @@ public sealed class CanvasWindow : Gtk.Grid
 
 			cumulative_zoom_amount += pinchDelta;
 			if (cumulative_zoom_amount <= -ZOOM_THRESHOLD_PINCH) {
-				document.Workspace.ZoomOutAroundCanvasPoint (current_canvas_pos);
+				document.Workspace.ZoomOutAroundVisiblePoint (current_visible_pos);
 				cumulative_zoom_amount = 0;
 			}
 		} else {
@@ -228,7 +235,7 @@ public sealed class CanvasWindow : Gtk.Grid
 
 			cumulative_zoom_amount += pinchDelta;
 			if (cumulative_zoom_amount >= ZOOM_THRESHOLD_PINCH) {
-				document.Workspace.ZoomInAroundCanvasPoint (current_canvas_pos);
+				document.Workspace.ZoomInAroundVisiblePoint (current_visible_pos);
 				cumulative_zoom_amount = 0;
 			}
 		}
@@ -258,35 +265,9 @@ public sealed class CanvasWindow : Gtk.Grid
 
 	public void UpdateRulerRange (object? sender, EventArgs e)
 	{
-		PointD lower = PointD.Zero;
-		PointD upper = PointD.Zero;
-
-		if (scrolled_window.Hadjustment == null || scrolled_window.Vadjustment == null)
-			return;
-
-		DocumentWorkspace workspace = document.Workspace;
-
 		Gtk.Widget viewport = scrolled_window.Child!;
-		Size viewSize = workspace.ViewSize;
-		PointD offset = new (
-			(viewport.GetAllocatedWidth () - viewSize.Width) / 2,
-			(viewport.GetAllocatedHeight () - viewSize.Height) / 2);
-
-		if (offset.X > 0) {
-			lower = lower with { X = -offset.X / workspace.Scale };
-			upper = upper with { X = document.ImageSize.Width - lower.X };
-		} else {
-			lower = lower with { X = scrolled_window.Hadjustment.Value / workspace.Scale };
-			upper = upper with { X = (scrolled_window.Hadjustment.Value + scrolled_window.Hadjustment.PageSize) / workspace.Scale };
-		}
-
-		if (offset.Y > 0) {
-			lower = lower with { Y = -offset.Y / workspace.Scale };
-			upper = upper with { Y = document.ImageSize.Height - lower.Y };
-		} else {
-			lower = lower with { Y = scrolled_window.Vadjustment.Value / workspace.Scale };
-			upper = upper with { Y = (scrolled_window.Vadjustment.Value + scrolled_window.Vadjustment.PageSize) / workspace.Scale };
-		}
+		PointD lower = document.Workspace.VisiblePointToCanvas (PointD.Zero);
+		PointD upper = document.Workspace.VisiblePointToCanvas (new PointD (viewport.GetAllocatedWidth (), viewport.GetAllocatedHeight ()));
 
 		horizontal_ruler.RulerRange = new (lower.X, upper.X);
 		vertical_ruler.RulerRange = new (lower.Y, upper.Y);
@@ -305,12 +286,12 @@ public sealed class CanvasWindow : Gtk.Grid
 		// "clicky" scroll wheels generate 1 or -1
 
 		if (args.Dy == -1) {
-			document.Workspace.ZoomInAroundCanvasPoint (current_canvas_pos);
+			document.Workspace.ZoomInAroundVisiblePoint (current_visible_pos);
 			return true;
 		}
 
 		if (args.Dy == 1) {
-			document.Workspace.ZoomOutAroundCanvasPoint (current_canvas_pos);
+			document.Workspace.ZoomOutAroundVisiblePoint (current_visible_pos);
 			return true;
 		}
 
@@ -322,7 +303,7 @@ public sealed class CanvasWindow : Gtk.Grid
 
 			cumulative_zoom_amount += args.Dy;
 			if (cumulative_zoom_amount <= -ZOOM_THRESHOLD_SCROLL) {
-				document.Workspace.ZoomInAroundCanvasPoint (current_canvas_pos);
+				document.Workspace.ZoomInAroundVisiblePoint (current_visible_pos);
 				cumulative_zoom_amount = 0;
 			}
 
@@ -332,7 +313,7 @@ public sealed class CanvasWindow : Gtk.Grid
 
 			cumulative_zoom_amount += args.Dy;
 			if (cumulative_zoom_amount >= ZOOM_THRESHOLD_SCROLL) {
-				document.Workspace.ZoomOutAroundCanvasPoint (current_canvas_pos);
+				document.Workspace.ZoomOutAroundVisiblePoint (current_visible_pos);
 				cumulative_zoom_amount = 0;
 			}
 

@@ -35,20 +35,6 @@ namespace Pinta.Tools;
 public static class ShapeEngineCollection
 {
 	/// <summary>
-	/// Clone the necessary data in each of the ShapeEngines in the collection.
-	/// </summary>
-	/// <returns>The partially cloned ShapeEngineCollection.</returns>
-	public static List<ShapeEngine> PartialClone (this IReadOnlyList<ShapeEngine> source)
-	{
-		List<ShapeEngine> result = new (capacity: source.Count);
-
-		for (int i = 0; i < source.Count; i++)
-			result.Add (source[i].Clone ());
-
-		return result;
-	}
-
-	/// <summary>
 	/// Calculate the closest ControlPoint to currentPoint.
 	/// </summary>
 	/// <param name="reference">The point to calculate the closest ControlPoint to.</param>
@@ -185,7 +171,7 @@ public abstract class ShapeEngine
 
 		ShapeEngine clone = newShapeType switch {
 
-			BaseEditEngine.ShapeTypes.ClosedLineCurveSeries => new LineCurveSeriesEngine (
+			BaseEditEngine.ShapeTypes.ClosedLineCurveSeries or BaseEditEngine.ShapeTypes.Freeform => new LineCurveSeriesEngine (
 				parent_layer,
 				DrawingLayer,
 				newShapeType,
@@ -234,6 +220,14 @@ public abstract class ShapeEngine
 		// Don't clone the GeneratedPoints or OrganizedPoints, as they will be calculated.
 		clone.ControlPoints = ControlPoints.Select (i => i.Clone ()).ToList ();
 		clone.DashPattern = DashPattern;
+
+		if (newShapeType is BaseEditEngine.ShapeTypes.ClosedLineCurveSeries or BaseEditEngine.ShapeTypes.Ellipse or BaseEditEngine.ShapeTypes.RoundedLineSeries)
+			BaseEditEngine.SetFramePoints (
+				clone.ControlPoints,
+				ControlPoints.Min (p => p.Position.X),
+				ControlPoints.Min (p => p.Position.Y),
+				ControlPoints.Max (p => p.Position.X),
+				ControlPoints.Max (p => p.Position.Y));
 
 		// Add the new ShapeEngine instance at the specified index to
 		// ensure as transparent of a cloning as possible.

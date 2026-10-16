@@ -1,3 +1,4 @@
+using System;
 using Pinta.Core;
 
 namespace Pinta;
@@ -18,6 +19,9 @@ public sealed class SettingsDialog : Gtk.Dialog
 	private readonly Gtk.SpinButton brush_hardness;
 	private readonly Gtk.SpinButton pixel_grid_zoom;
 	private readonly Gtk.SpinButton pad_opacity;
+	private readonly Gtk.SpinButton top_panels_opacity;
+	private readonly Gtk.SpinButton status_bar_opacity;
+	private readonly Gtk.ColorDialogButton workspace_color;
 	private readonly Gtk.CheckButton reset_layout;
 	private readonly Gtk.Stack pages = new () { Hexpand = true };
 	private readonly Gtk.Box sidebar = Gtk.Box.New (Gtk.Orientation.Vertical, SPACING);
@@ -43,13 +47,23 @@ public sealed class SettingsDialog : Gtk.Dialog
 		brush_hardness = CreateSpinButton (0, 100, 1, initial.BrushHardness);
 		pixel_grid_zoom = CreateSpinButton (100, 3600, 100, initial.PixelGridZoom);
 		pad_opacity = CreateSpinButton (10, 100, 5, initial.PadOpacity);
+		top_panels_opacity = CreateSpinButton (10, 100, 5, initial.TopPanelsOpacity);
+		status_bar_opacity = CreateSpinButton (10, 100, 5, initial.StatusBarOpacity);
+		Gdk.RGBA workspaceColor = new ();
+		workspaceColor.Parse (initial.WorkspaceColor);
+		workspace_color = Gtk.ColorDialogButton.New (new Gtk.ColorDialog { WithAlpha = false });
+		workspace_color.Rgba = workspaceColor;
+		workspace_color.Halign = Gtk.Align.Start;
 		reset_layout = Gtk.CheckButton.NewWithLabel (Translations.GetString ("Reset the position and size of the Tools, History, Layers and Colors windows"));
 
 		Gtk.Grid grid = AddPage (Translations.GetString ("Appearance"), Resources.StandardIcons.ViewReveal, out int row);
 		AddRow (grid, ref row, Translations.GetString ("Theme:"), theme, null);
+		AddRow (grid, ref row, Translations.GetString ("Background around the image:"), workspace_color, null);
 		AddRow (grid, ref row, Translations.GetString ("Ruler units:"), ruler_units, null);
 		AddRow (grid, ref row, Translations.GetString ("Show pixel grid from zoom:"), pixel_grid_zoom, "%");
 		AddRow (grid, ref row, Translations.GetString ("Inactive window opacity:"), pad_opacity, "%");
+		AddRow (grid, ref row, Translations.GetString ("Inactive toolbars opacity:"), top_panels_opacity, "%");
+		AddRow (grid, ref row, Translations.GetString ("Inactive status bar opacity:"), status_bar_opacity, "%");
 		grid.Attach (reset_layout, 0, row++, 3, 1);
 
 		grid = AddPage (Translations.GetString ("New Image"), Resources.StandardIcons.DocumentNew, out row);
@@ -93,7 +107,13 @@ public sealed class SettingsDialog : Gtk.Dialog
 		BrushHardness: brush_hardness.GetValueAsInt (),
 		PixelGridZoom: pixel_grid_zoom.GetValueAsInt (),
 		PadOpacity: pad_opacity.GetValueAsInt (),
+		TopPanelsOpacity: top_panels_opacity.GetValueAsInt (),
+		StatusBarOpacity: status_bar_opacity.GetValueAsInt (),
+		WorkspaceColor: ToHex (workspace_color.Rgba),
 		ResetLayout: reset_layout.Active);
+
+	private static string ToHex (Gdk.RGBA color)
+		=> $"#{(int) Math.Round (color.Red * 255):X2}{(int) Math.Round (color.Green * 255):X2}{(int) Math.Round (color.Blue * 255):X2}";
 
 	private static Gtk.DropDown CreateDropDown (int selected, params string[] items)
 	{
@@ -182,5 +202,8 @@ public sealed class SettingsDialog : Gtk.Dialog
 		int BrushHardness,
 		int PixelGridZoom,
 		int PadOpacity,
+		int TopPanelsOpacity,
+		int StatusBarOpacity,
+		string WorkspaceColor,
 		bool ResetLayout);
 }

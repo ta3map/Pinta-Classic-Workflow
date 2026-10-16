@@ -57,7 +57,8 @@ public static class ArrowExtensions
 		Context g,
 		Color outlineColor,
 		PointD endPoint,
-		PointD almostEndPoint)
+		PointD almostEndPoint,
+		double hardness)
 	{
 		//First, calculate the ending angle.
 		double endingAngle = Math.Atan (Math.Abs (endPoint.Y - almostEndPoint.Y) / Math.Abs (endPoint.X - almostEndPoint.X)) * InvRadiansToDegrees;
@@ -94,7 +95,8 @@ public static class ArrowExtensions
 		];
 
 		//Draw the arrow.
-		g.FillPolygonal (arrowPoints, outlineColor);
+		double feather = g.LineWidth * (1 - hardness) / 2;
+		g.FillPolygonal (arrowPoints, outlineColor, feather);
 
 		//Calculate the minimum bounding rectangle for the arrowhead and return it so
 		//that it can be unioned with the existing invalidation rectangle.
@@ -108,6 +110,6 @@ public static class ArrowExtensions
 			min.Y,
 			Math.Max (Math.Max (arrowPoints[1].X, arrowPoints[2].X), arrowPoints[3].X) - min.X,
 			Math.Max (Math.Max (arrowPoints[1].Y, arrowPoints[2].Y), arrowPoints[3].Y) - min.Y
-		);
+		).Inflated (feather, feather);
 	}
 }

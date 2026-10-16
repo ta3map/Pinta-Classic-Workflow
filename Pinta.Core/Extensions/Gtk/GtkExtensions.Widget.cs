@@ -90,6 +90,16 @@ partial class GtkExtensions
 	}
 
 	/// <summary>
+	/// The natural height of a visible widget, or zero when hidden.
+	/// Measured rather than allocated, so that it is known before the first layout.
+	/// </summary>
+	public static int GetVisibleHeight (this Gtk.Widget widget)
+	{
+		widget.Measure (Gtk.Orientation.Vertical, -1, out _, out int height, out _, out _);
+		return widget.Visible ? height : 0;
+	}
+
+	/// <summary>
 	/// In GTK4, toolbars are just a Box with a different CSS style class.
 	/// </summary>
 	public static Gtk.Box CreateToolBar ()

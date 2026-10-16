@@ -77,7 +77,6 @@ public sealed class DocumentHistory
 
 		history.Add (newItem);
 		Pointer = history.Count - 1;
-
 		if (newItem.CausesDirty)
 			document.IsDirty = true;
 

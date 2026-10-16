@@ -72,11 +72,13 @@ public static class StandardIcons
 	public const string ValueDecrease = "value-decrease-symbolic";
 	public const string ValueIncrease = "value-increase-symbolic";
 	public const string ViewFullscreen = "view-fullscreen-symbolic";
+	public const string ViewPin = "view-pin-symbolic";
 	public const string ViewRefresh = "view-refresh-symbolic";
 	public const string ViewReveal = "view-reveal-symbolic";
 
 	public const string WindowClose = "window-close-symbolic";
 	public const string WindowMaximize = "window-maximize-symbolic";
+	public const string WindowRestore = "window-restore-symbolic";
 	public const string WindowMinimize = "window-minimize-symbolic";
 
 	public const string ZoomFitBest = "zoom-fit-best-symbolic";
@@ -243,7 +245,7 @@ public static class Icons
 	public const string ToolColorPicker = "tool-colorpicker";
 	public const string ToolColorPickerPreviousTool = "go-previous-symbolic";
 	public const string ToolEllipse = "tool-ellipse";
-	public const string ToolEraser = "tool-eraser";
+	public const string ToolEraser = "pinta-tool-eraser";
 	public const string ToolFreeformShape = "tool-freeformshape";
 	public const string ToolGradient = "tool-gradient";
 	public const string ToolLine = "tool-line";
@@ -253,15 +255,15 @@ public static class Icons
 	public const string ToolPaintBrush = "tool-paintbrush";
 	public const string ToolPaintBucket = "tool-paintbucket";
 	public const string ToolPan = "tool-pan";
-	public const string ToolPencil = "tool-pencil";
+	public const string ToolPencil = "pinta-tool-pencil";
 	public const string ToolRecolor = "tool-recolor";
-	public const string ToolRectangle = "tool-rectangle";
+	public const string ToolRectangle = "pinta-tool-rectangle";
 	public const string ToolRectangleRounded = "tool-rectangle-rounded";
 	public const string ToolSelectEllipse = "tool-select-ellipse";
 	public const string ToolSelectLasso = "tool-select-lasso";
 	public const string ToolSelectMagicWand = "tool-select-magicwand";
 	public const string ToolSelectRectangle = "tool-select-rectangle";
-	public const string ToolText = "tool-text";
+	public const string ToolText = "pinta-tool-text";
 	public const string ToolZoom = "tool-zoom";
 
 	public const string ViewGrid = "view-grid";

@@ -30,6 +30,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using Cairo;
 using Debug = System.Diagnostics.Debug;
 
@@ -67,6 +68,56 @@ public sealed class LivePreviewManager : ILivePreview
 	public RectangleI RenderBounds { get; private set; }
 	public bool IsEnabled { get; private set; }
 
+	private const uint UPDATE_MILLISECONDS = 100;
+
+	private RenderHandle render_handle = null!; // NRT: Assigned before first use
+	private int handlers_in_queue;
+
+	/// <summary>
+	/// Runs the configuration dialog of the effect being previewed. The dialog shows the render progress,
+	/// and after OK it stays open, still blocking the main window, until the final render finishes or is canceled.
+	/// </summary>
+	/// <returns>true if the render finished after OK</returns>
+	public async Task<bool> RunDialog (Gtk.Dialog dialog)
+	{
+		Gtk.Box content = dialog.GetContentAreaBox ();
+		Gtk.ProgressBar progressBar = new ();
+		content.Append (progressBar);
+
+		using GLibTimer _ = GLib.Functions.TimeoutAdd (0, UPDATE_MILLISECONDS, () => {
+			progressBar.Fraction = render_handle.Progress;
+			progressBar.Visible = !render_handle.Task.IsCompleted;
+			return true;
+		});
+
+		if (await dialog.RunAsync () != Gtk.ResponseType.Ok)
+			return false;
+
+		for (Gtk.Widget? child = content.GetFirstChild (); child != progressBar; child = child!.GetNextSibling ())
+			child!.Sensitive = false;
+
+		dialog.SetResponseSensitive ((int) Gtk.ResponseType.Ok, false);
+
+		Task finished = WaitForRender ();
+		return await Task.WhenAny (dialog.RunAsync (), finished) == finished;
+	}
+
+	/// <summary>
+	/// Waits for the render of the latest effect settings, including a restart still queued by a settings change.
+	/// </summary>
+	private async Task WaitForRender ()
+	{
+		while (true) {
+			RenderHandle handle = render_handle;
+			await handle.Task;
+
+			if (handle == render_handle && handlers_in_queue == 0)
+				return;
+
+			await Task.Delay ((int) UPDATE_MILLISECONDS);
+		}
+	}
+
 	public async void Start (BaseEffect effect, bool showDialog = true)
 	{
 		if (IsEnabled)
@@ -88,14 +139,12 @@ public sealed class LivePreviewManager : ILivePreview
 		RenderBounds = selection.Visible ? selection.GetBounds ().ToInt () : LivePreviewSurface.GetBounds ();
 		RenderBounds = workspace.ClampToImageSize (RenderBounds);
 
-		const uint UPDATE_MILLISECONDS = 100;
-
 		AsyncEffectRenderer.Settings settings = new (
 			threadCount: system.RenderThreads,
 			renderBounds: RenderBounds,
 			effectIsTileable: effect.IsTileable);
 
-		int handlersInQueue = 0;
+		handlers_in_queue = 0;
 		Layer layer = doc.Layers.CurrentUserLayer;
 
 		string effectName = effect.Name;
@@ -103,13 +152,10 @@ public sealed class LivePreviewManager : ILivePreview
 		SimpleHistoryItem historyItem = new (effect.Icon, effect.Name);
 		historyItem.TakeSnapshotOfLayer (doc.Layers.CurrentUserLayerIndex);
 
-		RenderHandle renderHandle = null!; // NRT: Assigned before first use
-
-		IProgressDialog dialog = chrome.ProgressDialog;
-		dialog.Title = Translations.GetString ("Rendering Effect");
-		dialog.Text = effect.Name;
-		dialog.Progress = 0;
-		dialog.Canceled += HandleProgressDialogCancel;
+		IProgressIndicator progress = chrome.Progress;
+		progress.Text = effect.Name;
+		progress.Progress = 0;
+		progress.Show ();
 
 		bool renderAlive = true;
 
@@ -123,7 +169,7 @@ public sealed class LivePreviewManager : ILivePreview
 			if (effect.EffectData != null)
 				effect.EffectData.PropertyChanged += EffectData_PropertyChanged;
 
-			renderHandle = AsyncEffectRenderer.Start (
+			render_handle = AsyncEffectRenderer.Start (
 				settings,
 				effect,
 				layer.Surface,
@@ -134,7 +180,7 @@ public sealed class LivePreviewManager : ILivePreview
 				UPDATE_MILLISECONDS,
 				() => {
 					if (!renderAlive) return false;
-					PollForUpdate (renderHandle);
+					PollForUpdate (render_handle);
 					return true; // Keep ticking as long as the effect is active.
 				}
 			);
@@ -145,28 +191,27 @@ public sealed class LivePreviewManager : ILivePreview
 
 			if (!userConfirmed) {
 				Debug.WriteLine ("User decided not to proceed with the render");
-				renderHandle.Cancel ();
-				await renderHandle.Task;
+				render_handle.Cancel ();
+				await render_handle.Task;
 				return;
 			}
 
-			// The user confirmed, so show progress dialog
 			Debug.WriteLine (DateTime.Now.ToString ("HH:mm:ss:ffff") + "LivePreviewManager.Apply()");
 
-			dialog.Show ();
+			chrome.MainWindow.Sensitive = false;
 
-			var result = await renderHandle.Task;
+			var result = await render_handle.Task;
 
 			// Final poll after the renderer finishes to ensure the last-rendered tiles are displayed.
-			PollForUpdate (renderHandle);
+			PollForUpdate (render_handle);
 
 			foreach (var ex in result.Errors)
 				Debug.WriteLine ("AsyncEffectRenderer Error while rendering effect: " + effectName + " exception: " + ex.Message + "\n" + ex.StackTrace);
 
 			if (result.WasCanceled) {
 				Debug.WriteLine ("User decided to cancel the render");
-				renderHandle.Cancel ();
-				await renderHandle.Task;
+				render_handle.Cancel ();
+				await render_handle.Task;
 				return;
 			}
 
@@ -194,29 +239,24 @@ public sealed class LivePreviewManager : ILivePreview
 
 			chrome.MainWindowBusy = false;
 
-			dialog.Canceled -= HandleProgressDialogCancel;
+			chrome.MainWindow.Sensitive = true;
 
-			dialog.Hide ();
+			progress.Hide ();
 
 			renderAlive = false;
 		}
 
 		// === Methods ===
 
-		void HandleProgressDialogCancel (object? o, EventArgs e)
-		{
-			renderHandle.Cancel ();
-		}
-
 		async void EffectData_PropertyChanged (object? sender, PropertyChangedEventArgs e)
 		{
 			// TODO: calculate bounds
-			handlersInQueue++;
-			renderHandle.Cancel ();
-			await renderHandle.Task;
-			handlersInQueue--;
-			if (handlersInQueue > 0) return;
-			renderHandle = AsyncEffectRenderer.Start (settings, effect, layer.Surface, LivePreviewSurface);
+			handlers_in_queue++;
+			render_handle.Cancel ();
+			await render_handle.Task;
+			handlers_in_queue--;
+			if (handlers_in_queue > 0) return;
+			render_handle = AsyncEffectRenderer.Start (settings, effect, layer.Surface, LivePreviewSurface);
 		}
 
 		// This method now polls the renderer for its state instead of being a passive event handler.
@@ -224,7 +264,7 @@ public sealed class LivePreviewManager : ILivePreview
 		{
 			Debug.WriteLine (DateTime.Now.ToString ("HH:mm:ss:ffff") + " Polling for update.");
 
-			chrome.ProgressDialog.Progress = renderTask.Progress;
+			progress.Progress = renderTask.Progress;
 
 			if (!renderTask.TryConsumeBounds (out RectangleI updatedBounds))
 				return;

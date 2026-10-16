@@ -208,12 +208,46 @@ public sealed class DocumentWorkspace
 	{
 		Gtk.Viewport view = (Gtk.Viewport) Canvas.Parent!;
 
-		var h_adjust = view.GetHadjustment ()!;
-		h_adjust.Value = Math.Clamp (point.X * Scale - h_adjust.PageSize / 2, h_adjust.Lower, h_adjust.Upper);
-
-		var v_adjust = view.GetVadjustment ()!;
-		v_adjust.Value = Math.Clamp (point.Y * Scale - v_adjust.PageSize / 2, v_adjust.Lower, v_adjust.Upper);
+		ScrollCanvasPointTo (point, new PointD (view.Hadjustment!.PageSize / 2, view.Vadjustment!.PageSize / 2));
 	}
+
+	// The image is surrounded by free space of the visible area's size (see PintaCanvas.UpdateMargins),
+	// so the image edge is at PageSize inside the scrollable area.
+
+	/// <summary>
+	/// Converts a point in the coordinates of the visible area (the canvas viewport) to canvas coordinates.
+	/// </summary>
+	public PointD VisiblePointToCanvas (PointD visible_point)
+	{
+		Gtk.Viewport view = (Gtk.Viewport) Canvas.Parent!;
+		return new (
+			(view.Hadjustment!.Value + visible_point.X - view.Hadjustment.PageSize) / Scale,
+			(view.Vadjustment!.Value + visible_point.Y - view.Vadjustment.PageSize) / Scale);
+	}
+
+	private PointD CanvasPointToVisible (PointD canvas_point)
+	{
+		Gtk.Viewport view = (Gtk.Viewport) Canvas.Parent!;
+		return new (
+			canvas_point.X * Scale + view.Hadjustment!.PageSize - view.Hadjustment.Value,
+			canvas_point.Y * Scale + view.Vadjustment!.PageSize - view.Vadjustment.Value);
+	}
+
+	/// <summary>
+	/// Scrolls so that 'canvas_point' is shown at 'visible_point' of the visible area.
+	/// The viewport updates the scroll range only on the next layout, so it is set here as well.
+	/// </summary>
+	private void ScrollCanvasPointTo (PointD canvas_point, PointD visible_point)
+	{
+		Gtk.Viewport view = (Gtk.Viewport) Canvas.Parent!;
+		Gtk.Adjustment h_adjust = view.Hadjustment!;
+		Gtk.Adjustment v_adjust = view.Vadjustment!;
+
+		h_adjust.Upper = ViewSize.Width + 2 * h_adjust.PageSize;
+		v_adjust.Upper = ViewSize.Height + 2 * v_adjust.PageSize;
+
+		h_adjust.Value = canvas_point.X * Scale + h_adjust.PageSize - visible_point.X;
+		v_adjust.Value = canvas_point.Y * Scale + v_adjust.PageSize - visible_point.Y;	}
 
 	public void ScrollCanvas (PointI delta)
 	{
@@ -261,25 +295,28 @@ public sealed class DocumentWorkspace
 		ZoomAroundCenter (ZoomType.ZoomOut);
 	}
 
-	public void ZoomInAroundViewPoint (in PointD view_point)
+	/// <param name="visible_point">Point in the coordinates of the visible area (the canvas viewport)</param>
+	public void ZoomInAroundVisiblePoint (in PointD visible_point)
 	{
-		ZoomAndRecenterView (ZoomType.ZoomIn, view_point); // Zoom in relative to mouse position.
+		ZoomAndRecenterView (ZoomType.ZoomIn, visible_point);
 	}
 
 	public void ZoomInAroundCanvasPoint (in PointD canvas_point)
 	{
-		ZoomInAroundViewPoint (CanvasPointToView (canvas_point));
+		ZoomInAroundVisiblePoint (CanvasPointToVisible (canvas_point));
 	}
 
-	public void ZoomOutAroundViewPoint (in PointD view_point)
+	/// <param name="visible_point">Point in the coordinates of the visible area (the canvas viewport)</param>
+	public void ZoomOutAroundVisiblePoint (in PointD visible_point)
 	{
-		ZoomAndRecenterView (ZoomType.ZoomOut, view_point); // Zoom out relative to mouse position.
+		ZoomAndRecenterView (ZoomType.ZoomOut, visible_point);
 	}
 
 	public void ZoomOutAroundCanvasPoint (in PointD canvas_point)
 	{
-		ZoomOutAroundViewPoint (CanvasPointToView (canvas_point));
+		ZoomOutAroundVisiblePoint (CanvasPointToVisible (canvas_point));
 	}
+
 
 	public void ZoomManually ()
 	{
@@ -321,17 +358,16 @@ public sealed class DocumentWorkspace
 	private void ZoomAroundCenter (ZoomType zoomType)
 	{
 		Gtk.Viewport view = (Gtk.Viewport) Canvas.Parent!;
-		PointD center = new (
-			view.Hadjustment!.Value + (view.Hadjustment.PageSize / 2.0),
-			view.Vadjustment!.Value + (view.Vadjustment.PageSize / 2.0));
-		ZoomAndRecenterView (zoomType, center);
+		ZoomAndRecenterView (zoomType, new PointD (view.Hadjustment!.PageSize / 2, view.Vadjustment!.PageSize / 2));
 	}
 
 	/// <summary>
-	/// Zoom in/out around a specific point.
+	/// Zoom in/out keeping the image point under 'visible_point' at the same place on screen.
+	/// Computed only from the scroll state and the scale, since the canvas widget allocation
+	/// is not updated until the next layout (several scroll events can arrive before it).
 	/// </summary>
-	/// <param name="center_point">Center point to zoom around, in view coordinates</param>
-	private void ZoomAndRecenterView (ZoomType zoomType, PointD center_point)
+	/// <param name="visible_point">Point to zoom around, in the coordinates of the visible area</param>
+	private void ZoomAndRecenterView (ZoomType zoomType, PointD visible_point)
 	{
 		if (zoomType == ZoomType.ZoomOut && (ViewSize.Width == 1 || ViewSize.Height == 1))
 			return; //Can't zoom in past a 1x1 px canvas
@@ -343,12 +379,7 @@ public sealed class DocumentWorkspace
 
 		actions.View.SuspendZoomUpdate ();
 
-		Gtk.Viewport view = (Gtk.Viewport) Canvas.Parent!;
-
-		double scroll_offset_x = center_point.X - view.Hadjustment!.Value;
-		double scroll_offset_y = center_point.Y - view.Vadjustment!.Value;
-
-		PointD canvas_point = ViewPointToCanvas (center_point);
+		PointD image_point = VisiblePointToCanvas (visible_point);
 
 		if (zoomType == ZoomType.ZoomIn || zoomType == ZoomType.ZoomOut) {
 
@@ -395,17 +426,7 @@ public sealed class DocumentWorkspace
 
 		actions.View.UpdateCanvasScale ();
 
-		// Quick fix : need to manually update Upper limit because the value is not changing after updating the canvas scale.
-		// TODO : I think there is an event need to be fired so that those values updated automatically.
-		view.Hadjustment!.Upper = ViewSize.Width < view.Hadjustment.PageSize ? view.Hadjustment.PageSize : ViewSize.Width;
-		view.Vadjustment!.Upper = ViewSize.Height < view.Vadjustment.PageSize ? view.Vadjustment.PageSize : ViewSize.Height;
-
-		// Scroll so that the canvas position under 'center_point' is still the same after zooming.
-		// Note that the canvas widget might not have resized yet, so using Offset is important for taking
-		// the size difference into account.
-		PointD new_center_point = CanvasPointToView (canvas_point);
-		view.Hadjustment.Value = new_center_point.X - scroll_offset_x;
-		view.Vadjustment.Value = new_center_point.Y - scroll_offset_y;
+		ScrollCanvasPointTo (image_point, visible_point);
 
 		actions.View.ResumeZoomUpdate ();
 	}

@@ -24,8 +24,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System;
-
 using GdkPixbuf;
 
 namespace Pinta.Core;
@@ -34,7 +32,7 @@ public sealed class JpegFormat : GdkPixbufFormat
 {
 	//The default JPG compression quality to use when no saved setting is loaded. This will usually
 	//occur when Pinta is first run on a machine, although there are other possible cases as well.
-	private const int DefaultQuality = 85;
+	internal const int DefaultQuality = 85;
 
 	public JpegFormat ()
 		: base ("jpeg", supportsAlpha: false)
@@ -45,19 +43,6 @@ public sealed class JpegFormat : GdkPixbufFormat
 	{
 		//Load the JPG compression quality, but use the default value if there is no saved value.
 		int level = PintaCore.Settings.GetSetting<int> (SettingNames.JPG_QUALITY, DefaultQuality);
-
-		//Check to see if the Document has been saved before.
-		if (!PintaCore.Workspace.ActiveDocument.HasBeenSavedInSession) {
-			//Show the user the JPG export compression quality dialog, with the default
-			//value being the one loaded in (or the default value if it was not saved).
-			level = PintaCore.Actions.File.RaiseModifyCompression (level, parent);
-
-			if (level == -1)
-				throw new OperationCanceledException ();
-		}
-
-		//Store the "previous" JPG compression quality value (before saving with it).
-		PintaCore.Settings.PutSetting (SettingNames.JPG_QUALITY, level);
 
 		using var stream = file.Replace ();
 		try {

@@ -88,21 +88,21 @@ public static class WorkspaceServiceExtensions
 		return workspace.ActiveWorkspace.CanvasPointToView (canvas_pos);
 	}
 
-	public static void ResizeImage (
+	public static Task ResizeImage (
 		this IWorkspaceService workspace,
 		Size newSize,
 		ResamplingMode resamplingMode)
 	{
-		workspace.ActiveDocument.ResizeImage (newSize, resamplingMode);
+		return workspace.ActiveDocument.ResizeImage (newSize, resamplingMode);
 	}
 
-	public static void ResizeCanvas (
+	public static Task ResizeCanvas (
 		this IWorkspaceService workspace,
 		Size newSize,
 		Anchor anchor,
 		CompoundHistoryItem? compoundAction)
 	{
-		workspace.ActiveDocument.ResizeCanvas (newSize, anchor, compoundAction);
+		return workspace.ActiveDocument.ResizeCanvas (newSize, anchor, compoundAction);
 	}
 
 	public static void CloseActiveDocument (this WorkspaceManager workspace)
@@ -291,7 +291,7 @@ public sealed class WorkspaceManager : IWorkspaceService
 
 	// TODO: Standardize add to recent files
 	/// <returns>Flag that indicates if file was opened successfully</returns>
-	public bool OpenFile (
+	public async Task<bool> OpenFile (
 		Gio.File file,
 		Gtk.Window? parent = null)
 	{
@@ -300,50 +300,49 @@ public sealed class WorkspaceManager : IWorkspaceService
 		try {
 			// Open the image and add it to the layers
 			IImageImporter? importer = image_formats.GetImporterByFile (file.GetDisplayName ());
-			if (importer is not null) {
-				Document imported = importer.Import (file);
-				ActivateDocument (imported);
-			} else {
-				// Unknown extension, so try every loader.
-				StringBuilder errors = new ();
-				bool loaded = false;
-				foreach (var format in image_formats.Formats.Where (f => f.IsImportAvailable ())) {
-					try {
-						Document imported = format.Importer!.Import (file);
-						ActivateDocument (imported);
-						loaded = true;
-						break;
-					} catch (UnauthorizedAccessException) {
-						// If the file can't be accessed, don't retry for every format.
-						ShowFilePermissionErrorDialog (parent, file.GetParseName ());
-						return false;
-					} catch (Exception e) {
-						// Record errors in case none of the formats work.
-						errors.AppendLine ($"Failed to load image as {format.Filter.Name}:");
-						errors.Append (e.ToString ());
-						errors.AppendLine ();
-					}
-				}
+			StringBuilder errors = new ();
+			Document? imported = await chrome_manager.RunInBackground (
+				Translations.GetString ("Open Image"),
+				() => importer is not null ? importer.Import (file) : ImportWithAnyFormat (file, errors));
 
-				if (!loaded) {
-					ShowUnsupportedFormatDialog (parent, file.GetParseName (),
-						Translations.GetString ("Unsupported file format"), errors.ToString ());
-					return false;
-				}
+			if (imported is null) {
+				await ShowUnsupportedFormatDialog (parent, file.GetParseName (),
+					Translations.GetString ("Unsupported file format"), errors.ToString ());
+				return false;
 			}
 
+			ActivateDocument (imported);
 			ActiveWorkspace.History.PushNewItem (new BaseHistoryItem (Resources.StandardIcons.DocumentOpen, Translations.GetString ("Open Image")));
 			ActiveDocument.History.SetClean ();
 
 			return true;
 
 		} catch (UnauthorizedAccessException) {
-			ShowFilePermissionErrorDialog (parent, file.GetParseName ());
+			await ShowFilePermissionErrorDialog (parent, file.GetParseName ());
 		} catch (Exception e) {
-			ShowOpenFileErrorDialog (parent, file.GetParseName (), e.Message, e.ToString ());
+			await ShowOpenFileErrorDialog (parent, file.GetParseName (), e.Message, e.ToString ());
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// Unknown extension, so try every loader, recording errors in case none of the formats work.
+	/// If the file can't be accessed, don't retry for every format.
+	/// </summary>
+	private Document? ImportWithAnyFormat (Gio.File file, StringBuilder errors)
+	{
+		foreach (var format in image_formats.Formats.Where (f => f.IsImportAvailable ())) {
+			try {
+				return format.Importer!.Import (file);
+			} catch (Exception e) when (e is not UnauthorizedAccessException) {
+				errors.AppendLine ($"Failed to load image as {format.Filter.Name}:");
+				errors.Append (e.ToString ());
+				errors.AppendLine ();
+			}
+		}
+
+		return null;
 	}
 
 	public bool ImageFitsInWindow

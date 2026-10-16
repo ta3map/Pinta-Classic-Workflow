@@ -285,26 +285,27 @@ public sealed class ImageActions
 	}
 
 	private void HandlePintaCoreActionsImageRotateCCWActivated (object sender, EventArgs e)
-	{
-		Document doc = workspace.ActiveDocument;
-
-		tools.Commit ();
-
-		doc.RotateImageCCW ();
-		doc.History.PushNewItem (new InvertHistoryItem (InvertType.Rotate90CCW));
-	}
+		=> RotateImage (RotateCCW, new DegreesAngle (-90), InvertType.Rotate90CCW);
 
 	private void HandlePintaCoreActionsImageRotateCWActivated (object sender, EventArgs e)
+		=> RotateImage (RotateCW, new DegreesAngle (90), InvertType.Rotate90CW);
+
+	private void HandlePintaCoreActionsImageRotate180Activated (object sender, EventArgs e)
+		=> RotateImage (Rotate180, new DegreesAngle (180), InvertType.Rotate180);
+
+	private async void RotateImage (Command command, DegreesAngle angle, InvertType type)
 	{
 		Document doc = workspace.ActiveDocument;
 
 		tools.Commit ();
 
-		doc.RotateImageCW ();
-		doc.History.PushNewItem (new InvertHistoryItem (InvertType.Rotate90CW));
+		Size newSize = await PintaCore.Chrome.RunInBackground (command.Label, () => doc.RotateLayers (angle));
+
+		doc.FinishRotation (newSize);
+		doc.History.PushNewItem (new InvertHistoryItem (type));
 	}
 
-	private void HandlePintaCoreActionsImageFlattenActivated (object sender, EventArgs e)
+	private async void HandlePintaCoreActionsImageFlattenActivated (object sender, EventArgs e)
 	{
 		Document doc = workspace.ActiveDocument;
 
@@ -323,40 +324,36 @@ public sealed class ImageActions
 		for (int i = doc.Layers.UserLayers.Count - 1; i >= 1; i--)
 			hist.Push (new DeleteLayerHistoryItem (string.Empty, string.Empty, doc.Layers.UserLayers[i], i));
 
-		doc.Layers.FlattenLayers ();
+		ImageSurface flattened = await PintaCore.Chrome.RunInBackground (Translations.GetString ("Flatten"), () => doc.GetFlattenedImage ());
+
+		doc.Layers.FlattenLayers (flattened);
 
 		hist.Push (new SimpleHistoryItem (string.Empty, string.Empty, oldBottomSurface, 0));
 
 		doc.History.PushNewItem (hist);
 	}
 
-	private void HandlePintaCoreActionsImageRotate180Activated (object sender, EventArgs e)
+	private async void HandlePintaCoreActionsImageFlipVerticalActivated (object sender, EventArgs e)
 	{
 		Document doc = workspace.ActiveDocument;
 
 		tools.Commit ();
 
-		doc.RotateImage180 ();
-		doc.History.PushNewItem (new InvertHistoryItem (InvertType.Rotate180));
-	}
+		await PintaCore.Chrome.RunInBackground (FlipVertical.Label, doc.FlipLayersVertical);
 
-	private void HandlePintaCoreActionsImageFlipVerticalActivated (object sender, EventArgs e)
-	{
-		Document doc = workspace.ActiveDocument;
-
-		tools.Commit ();
-
-		doc.FlipImageVertical ();
+		doc.Workspace.Invalidate ();
 		doc.History.PushNewItem (new InvertHistoryItem (InvertType.FlipVertical));
 	}
 
-	private void HandlePintaCoreActionsImageFlipHorizontalActivated (object sender, EventArgs e)
+	private async void HandlePintaCoreActionsImageFlipHorizontalActivated (object sender, EventArgs e)
 	{
 		Document doc = workspace.ActiveDocument;
 
 		tools.Commit ();
 
-		doc.FlipImageHorizontal ();
+		await PintaCore.Chrome.RunInBackground (FlipHorizontal.Label, doc.FlipLayersHorizontal);
+
+		doc.Workspace.Invalidate ();
 		doc.History.PushNewItem (new InvertHistoryItem (InvertType.FlipHorizontal));
 	}
 
@@ -371,21 +368,22 @@ public sealed class ImageActions
 		CropImageToRectangle (doc, rect, doc.Selection.SelectionPath);
 	}
 
-	private void HandlePintaCoreActionsImageAutoCropActivated (object sender, EventArgs e)
+	private async void HandlePintaCoreActionsImageAutoCropActivated (object sender, EventArgs e)
 	{
 		Document doc = workspace.ActiveDocument;
 
 		tools.Commit ();
 
-		ImageSurface image = doc.GetFlattenedImage ();
-
-		RectangleI rect = Utility.GetObjectBounds (image);
+		RectangleI rect = await PintaCore.Chrome.RunInBackground (AutoCrop.Label, () => {
+			using ImageSurface image = doc.GetFlattenedImage ();
+			return Utility.GetObjectBounds (image);
+		});
 
 		// Ignore the current selection when auto-cropping.
 		CropImageToRectangle (doc, rect, /*selection*/ null);
 	}
 
-	void CropImageToRectangle (Document doc, RectangleI rect, Path? selection)
+	async void CropImageToRectangle (Document doc, RectangleI rect, Path? selection)
 	{
 		if (rect.Width <= 0 || rect.Height <= 0)
 			return;
@@ -397,15 +395,17 @@ public sealed class ImageActions
 		hist.StartSnapshotOfImage ();
 		hist.RestoreSelection = doc.Selection.Clone ();
 
+		await PintaCore.Chrome.RunInBackground (Translations.GetString ("Crop to Selection"), () => {
+			foreach (var layer in doc.Layers.UserLayers)
+				layer.Crop (rect, selection);
+		});
+
 		double original_scale = doc.Workspace.Scale;
 		doc.ImageSize = rect.Size;
 		doc.Workspace.ViewSize = rect.Size;
 		doc.Workspace.Scale = original_scale;
 
 		view.UpdateCanvasScale ();
-
-		foreach (var layer in doc.Layers.UserLayers)
-			layer.Crop (rect, selection);
 
 		hist.FinishSnapshotOfImage ();
 

@@ -106,13 +106,6 @@ public abstract class ShapeTool : BaseTool
 		base.OnDeactivated (document, newTool);
 	}
 
-	protected override void OnAfterSave (Document document)
-	{
-		EditEngine.HandleAfterSave ();
-
-		base.OnAfterSave (document);
-	}
-
 	protected override void OnCommit (Document? document)
 	{
 		EditEngine.HandleCommit ();
@@ -150,20 +143,6 @@ public abstract class ShapeTool : BaseTool
 			return base.OnHandleRedo (document);
 		else
 			return true;
-	}
-
-	protected override void OnAfterUndo (Document document)
-	{
-		EditEngine.HandleAfterUndo ();
-
-		base.OnAfterUndo (document);
-	}
-
-	protected override void OnAfterRedo (Document document)
-	{
-		EditEngine.HandleAfterRedo ();
-
-		base.OnAfterRedo (document);
 	}
 
 	protected override void OnSaveSettings (ISettingsService settings)

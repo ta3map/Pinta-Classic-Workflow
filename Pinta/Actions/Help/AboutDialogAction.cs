@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Linq;
 using System.Text;
 using Pinta.Core;
 using Pinta.Resources;
@@ -64,7 +65,8 @@ internal sealed class AboutDialogAction : IActionHandler
 		dialog.Title = Translations.GetString ("About Pinta Classic Workflow");
 		dialog.ApplicationName = PintaCore.ApplicationDisplayName;
 		dialog.ApplicationIcon = Icons.Pinta;
-		dialog.Version = application_version;
+		DateTime build_time = System.IO.Directory.GetFiles (AppContext.BaseDirectory, "Pinta*.dll").Max (System.IO.File.GetLastWriteTime);
+		dialog.Version = $"{application_version} (build {build_time:yyyy-MM-dd HH:mm:ss})";
 		dialog.Website = PintaCore.ForkHomepageUrl;
 		dialog.Comments = Translations.GetString ("Pinta Classic Workflow is a fork of Pinta that brings its look and behavior as close as possible to Paint.NET. It is not the official Pinta application.\n\nReport bugs and ask for help only via the Pinta Classic Workflow project (see Help). Do not use the upstream Pinta issue tracker or forums for this program.");
 		dialog.Copyright = BuildCopyrightText ();

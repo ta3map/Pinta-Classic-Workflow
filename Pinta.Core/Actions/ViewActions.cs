@@ -447,6 +447,8 @@ public sealed class ViewActions
 		if (ZoomComboBox.ComboBox.Active == default_zoom) return;
 		ZoomComboBox.ComboBox.Active = default_zoom;
 		UpdateCanvasScale ();
+		Size image_size = workspace.ImageSize;
+		workspace.ActiveWorkspace.RecenterView (new PointD (image_size.Width / 2.0, image_size.Height / 2.0));
 	}
 
 	private void HandlePintaCoreActionsViewZoomComboBoxComboBoxChanged (object? sender, EventArgs e)

@@ -111,14 +111,26 @@ internal sealed class CloseDocumentAction : IActionHandler
 	private static Gtk.Picture CreatePreview (Document document)
 	{
 		using Cairo.ImageSurface flattened = document.GetFlattenedImage ();
-		flattened.Flush ();
+		using Cairo.ImageSurface preview = CairoExtensions.CreateImageSurface (Cairo.Format.Argb32, flattened.Width, flattened.Height);
+
+		// The checkerboard cells should look about 8 px large after the preview is scaled down.
+		int cellSize = Math.Max (8, Math.Max (flattened.Width, flattened.Height) * 8 / PREVIEW_SIZE);
+
+		using (Cairo.Context g = new (preview)) {
+			g.SetSource (CairoExtensions.CreateTransparentBackgroundPattern (cellSize));
+			g.Paint ();
+			g.SetSourceSurface (flattened, 0, 0);
+			g.Paint ();
+		}
+
+		preview.Flush ();
 
 		Gdk.MemoryTexture texture = Gdk.MemoryTexture.New (
-			flattened.Width,
-			flattened.Height,
+			preview.Width,
+			preview.Height,
 			Gdk.MemoryFormat.B8g8r8a8Premultiplied,
-			GLib.Bytes.New (flattened.GetData ()),
-			(nuint) flattened.Stride);
+			GLib.Bytes.New (preview.GetData ()),
+			(nuint) preview.Stride);
 
 		Gtk.Picture picture = Gtk.Picture.NewForPaintable (texture);
 		picture.ContentFit = Gtk.ContentFit.Contain;

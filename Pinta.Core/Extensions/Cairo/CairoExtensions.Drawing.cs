@@ -180,7 +180,8 @@ partial class CairoExtensions
 		this Context g,
 		ReadOnlySpan<PointD> points,
 		Color color,
-		LineCap lineCap)
+		LineCap lineCap,
+		double hardness = 1)
 	{
 		g.Save ();
 		g.MoveTo (points[0].X, points[0].Y);
@@ -188,22 +189,54 @@ partial class CairoExtensions
 		foreach (var point in points)
 			g.LineTo (point.X, point.Y);
 
-		g.SetSourceColor (color);
 		g.LineCap = lineCap;
 
 		RectangleD dirty = g.StrokeExtents ();
-		g.Stroke ();
+		g.StrokeSoft (color, g.LineWidth, hardness);
 
 		g.Restore ();
 
 		return dirty;
 	}
 
+	/// <summary>
+	/// Fills the current path and fades it out to transparency over the feather distance outside the path.
+	/// </summary>
+	public static void FillSoft (this Context g, Color color, double feather)
+	{
+		g.SetSourceColor (color);
+		g.FillPreserve ();
+		g.StrokeSoft (color, 2 * feather, 0);
+	}
+
+	/// <summary>
+	/// Strokes the current path with an opaque core of hardness * width
+	/// and a linear falloff to transparency at the full width.
+	/// </summary>
+	public static void StrokeSoft (this Context g, Color color, double width, double hardness)
+	{
+		int steps = Math.Clamp ((int) (width * (1 - hardness) / 2), 1, 32);
+
+		g.PushGroup ();
+		g.Operator = Operator.Add;
+		g.SetSourceColor (color with { A = color.A / steps });
+
+		for (int k = 1; k <= steps; k++) {
+			g.LineWidth = width * (hardness + (1 - hardness) * k / steps);
+			g.StrokePreserve ();
+		}
+
+		g.NewPath ();
+		g.PopGroupToSource ();
+		g.Paint ();
+	}
+
 	/// <returns>Bounding rectangle of changed area</returns>
 	public static RectangleD FillPolygonal (
 		this Context g,
 		ReadOnlySpan<PointD> points,
-		Color color)
+		Color color,
+		double feather = 0)
 	{
 		g.Save ();
 
@@ -212,10 +245,8 @@ partial class CairoExtensions
 		foreach (var point in points)
 			g.LineTo (point.X, point.Y);
 
-		g.SetSourceColor (color);
-
 		RectangleD dirty = g.StrokeExtents ();
-		g.Fill ();
+		g.FillSoft (color, feather);
 
 		g.Restore ();
 

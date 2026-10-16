@@ -223,9 +223,9 @@ public sealed class DocumentLayers
 	}
 
 	/// <summary>
-	/// Flatten all user layers to a single layer.
+	/// Flatten all user layers to a single layer, given the result of <see cref="GetFlattenedImage"/>.
 	/// </summary>
-	public void FlattenLayers ()
+	public void FlattenLayers (ImageSurface flattened)
 	{
 		if (user_layers.Count < 2)
 			throw new InvalidOperationException ("Cannot flatten image because there is only one layer.");
@@ -235,7 +235,7 @@ public sealed class DocumentLayers
 
 		// Replace the bottom surface with the flattened image,
 		// and dispose the old surface
-		bottom_layer.Surface = GetFlattenedImage ();
+		bottom_layer.Surface = flattened;
 
 		// Reset our layer pointer to the only remaining layer
 		CurrentUserLayerIndex = 0;

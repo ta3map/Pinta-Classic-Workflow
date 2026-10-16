@@ -145,15 +145,19 @@ internal sealed class MainClass
 		}
 
 		if (files.Any ()) {
-			foreach (var file in files) {
-				PintaCore.Workspace.OpenFile (Gio.FileHelper.NewForCommandlineArg (file));
-			}
+			OpenFiles (files);
 		} else {
 			// Create a blank document
 			PintaCore.Workspace.NewDocument (
 				new Core.Size (800, 600),
 				new Cairo.Color (1, 1, 1));
 		}
+	}
+
+	private static async void OpenFiles (IEnumerable<string> files)
+	{
+		foreach (var file in files)
+			await PintaCore.Workspace.OpenFile (Gio.FileHelper.NewForCommandlineArg (file));
 	}
 
 	private static void OnUnhandledException (Exception e)
@@ -187,10 +191,7 @@ internal sealed class MainClass
 		MacInterop.ApplicationEvents.OpenDocuments += (sender, e) => {
 			if (e.Documents != null) {
 				GLib.Functions.TimeoutAdd (0, 10, () => {
-					foreach (string filename in e.Documents.Keys) {
-						System.Console.Error.WriteLine ("Opening: {0}", filename);
-						PintaCore.Workspace.OpenFile (Gio.FileHelper.NewForCommandlineArg (filename));
-					}
+					OpenFiles (e.Documents.Keys);
 					return false;
 				});
 			}

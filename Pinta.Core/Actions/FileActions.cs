@@ -155,13 +155,18 @@ public sealed class FileActions
 		return results.All (succeeded => succeeded);
 	}
 
-	internal int RaiseModifyCompression (int defaultCompression, Gtk.Window parent)
+	/// <summary>
+	/// Asks for the JPEG quality and stores it for the export.
+	/// </summary>
+	/// <returns>false if the user canceled</returns>
+	public bool RaiseModifyCompression (Gtk.Window parent)
 	{
-		ModifyCompressionEventArgs e = new (defaultCompression, parent);
+		ModifyCompressionEventArgs e = new (PintaCore.Settings.GetSetting<int> (SettingNames.JPG_QUALITY, JpegFormat.DefaultQuality), parent);
 		ModifyCompression?.Invoke (this, e);
-		return
-			e.Cancel
-			? -1
-			: e.Quality;
+
+		if (!e.Cancel)
+			PintaCore.Settings.PutSetting (SettingNames.JPG_QUALITY, e.Quality);
+
+		return !e.Cancel;
 	}
 }

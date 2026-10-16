@@ -44,6 +44,7 @@ public abstract class BaseEditEngine
 		ClosedLineCurveSeries,
 		Ellipse,
 		RoundedLineSeries,
+		Freeform,
 	}
 
 	public static Dictionary<ShapeTypes, ShapeTool> CorrespondingTools { get; } = [];
@@ -83,8 +84,6 @@ public abstract class BaseEditEngine
 	protected Gtk.Separator outline_width_sep = null!;
 
 	protected DashPatternBox dash_pattern_box = new ();
-	private string prev_dash_pattern = "-";
-
 	private bool prev_antialiasing = true;
 
 	public int BrushWidth {
@@ -95,7 +94,10 @@ public abstract class BaseEditEngine
 		}
 	}
 
-	private int prev_outline_width = BaseTool.DEFAULT_BRUSH_WIDTH;
+	private Gtk.Label? hardness_label;
+	private Gtk.Scale? hardness_slider;
+
+	protected int Hardness => (int) (hardness_slider?.GetValue () ?? BaseTool.DEFAULT_BRUSH_HARDNESS);
 
 	private bool StrokeShape {
 		get {
@@ -140,7 +142,7 @@ public abstract class BaseEditEngine
 		get {
 			ShapeEngine? selEngine = SelectedShapeEngine;
 
-			if (selEngine != null && selEngine.ControlPoints.Count > SelectedPointIndex)
+			if (selEngine != null && SelectedPointIndex > -1 && selEngine.ControlPoints.Count > SelectedPointIndex)
 				return selEngine.ControlPoints[SelectedPointIndex];
 			else
 				return null;
@@ -160,9 +162,14 @@ public abstract class BaseEditEngine
 	}
 
 	/// <summary>
-	/// The selected shape's ShapeEngine. This requires that a point in the shape be selected and should be used in most cases. This can be null.
+	/// The selected shape's ShapeEngine. This requires that a point in the shape be selected (a frame is selected as a whole) and should be used in most cases. This can be null.
 	/// </summary>
-	public ShapeEngine? SelectedShapeEngine => (SelectedPointIndex > -1) ? ActiveShapeEngine : null;
+	public ShapeEngine? SelectedShapeEngine => (SelectedPointIndex > -1 || IsFrame) ? ActiveShapeEngine : null;
+
+	/// <summary>
+	/// Frame shapes always have 8 control points (corners and edge midpoints) and are edited like a selection.
+	/// </summary>
+	protected virtual bool IsFrame => false;
 
 	/// <summary>
 	/// Display the handles for all active shape engines' control points, along with the hover position
@@ -178,8 +185,6 @@ public abstract class BaseEditEngine
 	protected PointD last_mouse_pos = new (0d, 0d);
 
 	//Helps to keep track of the first modification on a shape after the mouse is clicked, to prevent unnecessary history items.
-	protected bool clicked_without_modifying = false;
-
 	//Stores the editable shape data.
 	public static Collection<ShapeEngine> SEngines = [];
 
@@ -217,7 +222,7 @@ public abstract class BaseEditEngine
 
 	private void OnFillStyleChanged (object? sender, EventArgs e)
 	{
-		outline_width.Visible = outline_width_label.Visible = outline_width_sep.Visible = StrokeShape;
+		outline_width.Visible = outline_width_label.Visible = outline_width_sep.Visible = hardness_label!.Visible = hardness_slider!.Visible = StrokeShape;
 		dash_pattern_box.SetVisible (StrokeShape);
 		DrawActiveShape (false, false, true, false, false);
 	}
@@ -228,6 +233,7 @@ public abstract class BaseEditEngine
 	private readonly ActionManager actions;
 	private readonly IPaletteService palette;
 	private readonly IWorkspaceService workspace;
+	private readonly ISettingsService settings;
 
 	public BaseEditEngine (
 		IServiceProvider services,
@@ -237,6 +243,7 @@ public abstract class BaseEditEngine
 		actions = services.GetService<ActionManager> ();
 		palette = services.GetService<IPaletteService> ();
 		workspace = services.GetService<IWorkspaceService> ();
+		settings = services.GetService<ISettingsService> ();
 
 		owner = passedOwner;
 
@@ -247,17 +254,11 @@ public abstract class BaseEditEngine
 
 	public virtual void OnSaveSettings (ISettingsService settings, string toolPrefix)
 	{
-		if (outline_width is not null)
-			settings.PutSetting (SettingNames.BrushWidth (toolPrefix), (int) outline_width.Value);
-
 		if (fill_button is not null)
 			settings.PutSetting (SettingNames.FillStyle (toolPrefix), fill_button.SelectedIndex);
 
 		if (shape_type_button is not null)
 			settings.PutSetting (SettingNames.ShapeType (toolPrefix), shape_type_button.SelectedIndex);
-
-		if (dash_pattern_box?.ComboBox is not null)
-			settings.PutSetting (SettingNames.DashPattern (toolPrefix), dash_pattern_box.ComboBox.ComboBox.GetActiveText ()!);
 	}
 
 	public virtual void HandleBuildToolBar (Gtk.Box tb, ISettingsService settings, string toolPrefix)
@@ -276,6 +277,7 @@ public abstract class BaseEditEngine
 			shape_type_button.AddItem (Translations.GetString ("Closed Line/Curve Series"), Resources.Icons.ToolRectangle, 1);
 			shape_type_button.AddItem (Translations.GetString ("Ellipse"), Resources.Icons.ToolEllipse, 2);
 			shape_type_button.AddItem (Translations.GetString ("Rounded Line Series"), Resources.Icons.ToolRectangleRounded, 3);
+			shape_type_button.AddItem (Translations.GetString ("Freeform Shape"), Resources.Icons.ToolFreeformShape, 4);
 
 			shape_type_button.SelectedIndex = settings.GetSetting (
 				SettingNames.ShapeType (toolPrefix),
@@ -295,10 +297,6 @@ public abstract class BaseEditEngine
 				}
 
 				//if shape is selected it will be converted to new shape and shape type will be changed, otherwise only shape type will be changed.
-
-				//Create a new ShapesModifyHistoryItem so that the changing of the shape type can be undone.
-				workspace.ActiveDocument.History.PushNewItem (new ShapesModifyHistoryItem (
-					this, owner.Icon, Translations.GetString ("Changed Shape Type")));
 
 				//Clone the old shape; it should be automatically garbage-collected. newShapeType already has the updated value.
 				selEngine = selEngine.Convert (newShapeType, SelectedShapeIndex);
@@ -346,8 +344,8 @@ public abstract class BaseEditEngine
 		tb.Append (outline_width_sep);
 
 		if (outline_width_label == null) {
-			string outlineWidthText = Translations.GetString ("Outline width");
-			outline_width_label = Gtk.Label.New ($" {outlineWidthText}: ");
+			string brushWidthText = Translations.GetString ("Brush width");
+			outline_width_label = Gtk.Label.New ($" {brushWidthText}: ");
 		}
 
 		tb.Append (outline_width_label);
@@ -358,14 +356,12 @@ public abstract class BaseEditEngine
 				1,
 				1e5,
 				1,
-				settings.GetSetting (
-					SettingNames.BrushWidth (toolPrefix),
-					BaseTool.DEFAULT_BRUSH_WIDTH
-				)
+				settings.GetSetting (SettingNames.BRUSH_WIDTH, BaseTool.DEFAULT_BRUSH_WIDTH)
 			);
 			outline_width.TooltipText = Translations.GetString ("Change brush width. Shortcut keys: [ ]");
 
 			outline_width.OnValueChanged += (o, e) => {
+				settings.PutSetting (SettingNames.BRUSH_WIDTH, BrushWidth);
 
 				ShapeEngine? selEngine = SelectedShapeEngine;
 				if (selEngine == null) return;
@@ -380,22 +376,32 @@ public abstract class BaseEditEngine
 
 		tb.Append (outline_width);
 
+		hardness_label ??= Gtk.Label.New ($" {Translations.GetString ("Hardness")}: ");
+		tb.Append (hardness_label);
+
+		if (hardness_slider == null) {
+			hardness_slider = GtkExtensions.CreateToolBarSlider (0, 100, 1, settings.GetSetting (SettingNames.BRUSH_HARDNESS, BaseTool.DEFAULT_BRUSH_HARDNESS));
+			hardness_slider.OnValueChanged += (_, _) => {
+				settings.PutSetting (SettingNames.BRUSH_HARDNESS, Hardness);
+				DrawActiveShape (false, false, true, false, false);
+			};
+		}
+
+		tb.Append (hardness_slider);
+
 		Gtk.ComboBoxText? dpbBox = dash_pattern_box.SetupToolbar (tb);
 
-		outline_width.Visible = outline_width_label.Visible = outline_width_sep.Visible = StrokeShape;
+		outline_width.Visible = outline_width_label.Visible = outline_width_sep.Visible = hardness_label.Visible = hardness_slider.Visible = StrokeShape;
 		dash_pattern_box.SetVisible (StrokeShape);
 
 		if (dpbBox == null)
 			return;
 
-		dpbBox.GetEntry ().SetText (
-			settings.GetSetting (
-				SettingNames.DashPattern (toolPrefix),
-				"-"
-			)
-		);
+		dpbBox.GetEntry ().SetText (settings.GetSetting (SettingNames.DASH_PATTERN, "-"));
 
 		dpbBox.OnChanged += (o, e) => {
+			settings.PutSetting (SettingNames.DASH_PATTERN, dpbBox.GetActiveText ()!);
+
 			ShapeEngine? selEngine = SelectedShapeEngine;
 			if (selEngine == null) return;
 			selEngine.DashPattern = dpbBox.GetActiveText ()!;
@@ -429,16 +435,6 @@ public abstract class BaseEditEngine
 		palette.SecondaryColorChanged -= Palette_SecondaryColorChanged;
 	}
 
-	public virtual void HandleAfterSave ()
-	{
-		//When saving, everything will be finalized, which is good; however, afterwards, the user will expect
-		//everything to remain editable. Currently, a finalization history item will always be added.
-		actions.Edit.Undo.Activate ();
-
-		//Redraw all of the editable shapes in case saving caused some extra/unexpected behavior.
-		DrawAllShapes ();
-	}
-
 	public virtual void HandleCommit ()
 	{
 		//Finalize every editable shape not yet finalized.
@@ -446,29 +442,29 @@ public abstract class BaseEditEngine
 	}
 
 	public virtual bool HandleBeforeUndo ()
-		=> false;
+		=> CancelShapes ();
 
-	public virtual bool HandleBeforeRedo ()
-		=> false;
-
-	public virtual void HandleAfterUndo ()
+	/// <summary>
+	/// Discards the shapes that are not baked yet. Returns whether there was anything to discard.
+	/// </summary>
+	private bool CancelShapes ()
 	{
-		ShapeEngine? activeEngine = ActiveShapeEngine;
+		bool editing = SEngines.Count > 0;
 
-		if (activeEngine != null)
-			UpdateToolbarSettings (activeEngine);
+		foreach (ShapeEngine engine in SEngines)
+			engine.DrawingLayer.TryRemoveLayer ();
 
-		DrawActiveShape (true, false, true, false, false); // Draw the current state.
+		ResetShapes ();
+		actions.Edit.Undo.Sensitive = workspace.ActiveDocument.History.CanUndo;
+		workspace.ActiveDocument.Workspace.Invalidate ();
+
+		return editing;
 	}
 
-	public virtual void HandleAfterRedo ()
+	public virtual bool HandleBeforeRedo ()
 	{
-		ShapeEngine? activeEngine = ActiveShapeEngine;
-
-		if (activeEngine != null)
-			UpdateToolbarSettings (activeEngine);
-
-		DrawActiveShape (true, false, true, false, false); // Draw the current state.
+		FinalizeAllShapes ();
+		return false;
 	}
 
 	public virtual bool HandleKeyDown (Document document, ToolKeyEventArgs e)
@@ -482,14 +478,18 @@ public abstract class BaseEditEngine
 			case Gdk.Constants.KEY_KP_Enter:
 				FinalizeAllShapes ();
 				return true;
+			case Gdk.Constants.KEY_Escape:
+				bool editing = SEngines.Count > 0;
+				FinalizeAllShapes ();
+				return editing;
 			case Gdk.Constants.KEY_space:
 				HandleSpace (e);
 				return true;
 			case Gdk.Constants.KEY_Up:
-				HandleUp ();
+				NudgeSelectedPoint (0d, -1d);
 				return true;
 			case Gdk.Constants.KEY_Down:
-				HandleDown ();
+				NudgeSelectedPoint (0d, 1d);
 				return true;
 			case Gdk.Constants.KEY_Left:
 				HandleLeft (e);
@@ -534,9 +534,7 @@ public abstract class BaseEditEngine
 
 			}
 		} else {
-			//Move the selected control point.
-			PointD originalPosition = SelectedPoint!.Position; // NRT - Checked by SelectedPointIndex
-			SelectedPoint.Position = originalPosition with { X = originalPosition.X + 1d };
+			NudgeSelectedPoint (1d, 0d);
 		}
 
 		DrawActiveShape (true, false, true, false, false);
@@ -562,38 +560,22 @@ public abstract class BaseEditEngine
 
 			}
 		} else {
-			//Move the selected control point.
-			PointD originalPosition = SelectedPoint!.Position; // NRT - Checked by SelectedPointIndex
-			SelectedPoint.Position = originalPosition with { X = originalPosition.X - 1d };
+			NudgeSelectedPoint (-1d, 0d);
 		}
 
 		DrawActiveShape (true, false, true, false, false);
 	}
 
-	private void HandleDown ()
+	/// <summary>
+	/// Moves the selected control point by the given offset, the same way as dragging it with the mouse.
+	/// </summary>
+	private void NudgeSelectedPoint (double dx, double dy)
 	{
-		//Make sure a control point is selected.
-
-		if (SelectedPointIndex < 0)
+		if (SelectedPoint is not ControlPoint selPoint)
 			return;
 
-		//Move the selected control point.
-		PointD originalPosition = SelectedPoint!.Position; // NRT - Checked by SelectedPointIndex
-		SelectedPoint.Position = originalPosition with { Y = originalPosition.Y + 1d };
-
-		DrawActiveShape (true, false, true, false, false);
-	}
-
-	private void HandleUp ()
-	{
-		//Make sure a control point is selected.
-
-		if (SelectedPointIndex < 0)
-			return;
-
-		//Move the selected control point.
-		PointD originalPosition = SelectedPoint!.Position; // NRT - Checked by SelectedPointIndex
-		SelectedPoint.Position = originalPosition with { Y = originalPosition.Y - 1d };
+		current_point = new PointD (selPoint.Position.X + dx, selPoint.Position.Y + dy);
+		MovePoint (SelectedShapeEngine!.ControlPoints);
 
 		DrawActiveShape (true, false, true, false, false);
 	}
@@ -602,20 +584,11 @@ public abstract class BaseEditEngine
 	{
 		ControlPoint? selPoint = SelectedPoint;
 
-		if (selPoint == null)
+		if (selPoint == null || IsFrame)
 			return;
 
 		//This can be assumed not to be null since selPoint was not null.
 		ShapeEngine selEngine = SelectedShapeEngine!; // NRT - ^^
-
-		//Create a new ShapesModifyHistoryItem so that the adding of a control point can be undone.
-		workspace.ActiveDocument.History.PushNewItem (
-			new ShapesModifyHistoryItem (
-				this,
-				owner.Icon,
-				ShapeName + " " + Translations.GetString ("Point Added")
-			)
-		);
 
 		bool shiftKey = e.IsShiftPressed;
 		bool ctrlKey = e.IsControlPressed;
@@ -652,22 +625,13 @@ public abstract class BaseEditEngine
 
 	private void HandleDelete ()
 	{
-		if (SelectedPointIndex < 0)
+		if (ActiveShapeEngine is not ShapeEngine selEngine || (SelectedPointIndex < 0 && !IsFrame))
 			return;
 
-		List<ControlPoint> controlPoints = SelectedShapeEngine!.ControlPoints; // NRT - Code assumes this is not-null
+		List<ControlPoint> controlPoints = selEngine.ControlPoints;
 
-		//Either delete a ControlPoint or an entire shape (if there's only 1 ControlPoint left).
-		if (controlPoints.Count > 1) {
-			//Create a new ShapesModifyHistoryItem so that the deletion of a control point can be undone.
-			workspace.ActiveDocument.History.PushNewItem (
-				new ShapesModifyHistoryItem (
-					this,
-					owner.Icon,
-					ShapeName + " " + Translations.GetString ("Point Deleted")
-				)
-			);
-
+		//Either delete a ControlPoint or an entire shape (if there's only 1 ControlPoint left, or the shape is a frame).
+		if (controlPoints.Count > 1 && !IsFrame) {
 			//Delete the selected point from the shape.
 			controlPoints.RemoveAt (SelectedPointIndex);
 
@@ -676,23 +640,6 @@ public abstract class BaseEditEngine
 				--SelectedPointIndex;
 
 		} else {
-			Document doc = workspace.ActiveDocument;
-
-			//Create a new ShapesHistoryItem so that the deletion of a shape can be undone.
-			doc.History.PushNewItem (
-				new ShapesHistoryItem (
-					this,
-					owner.Icon,
-					ShapeName + " " + Translations.GetString ("Deleted"),
-					doc.Layers.CurrentUserLayer.Surface.Clone (),
-					doc.Layers.CurrentUserLayer,
-					SelectedPointIndex,
-					SelectedShapeIndex,
-					false
-				)
-			);
-
-
 			//Since the shape itself will be deleted, remove its ReEditableLayer from the drawing loop.
 
 			ReEditableLayer removeMe = SEngines.ElementAt (SelectedShapeIndex).DrawingLayer;
@@ -704,7 +651,7 @@ public abstract class BaseEditEngine
 			SEngines.RemoveAt (SelectedShapeIndex);
 
 			//Redraw the workspace.
-			doc.Workspace.Invalidate ();
+			workspace.ActiveDocument.Workspace.Invalidate ();
 
 			SelectedPointIndex = -1;
 			SelectedShapeIndex = -1;
@@ -724,6 +671,7 @@ public abstract class BaseEditEngine
 			case Gdk.Constants.KEY_Delete:
 			case Gdk.Constants.KEY_Return:
 			case Gdk.Constants.KEY_KP_Enter:
+			case Gdk.Constants.KEY_Escape:
 			case Gdk.Constants.KEY_space:
 			case Gdk.Constants.KEY_Up:
 			case Gdk.Constants.KEY_Down:
@@ -757,8 +705,8 @@ public abstract class BaseEditEngine
 
 		is_drawing = true;
 
-		//Right clicking changes tension.
-		changing_tension = e.MouseButton != MouseButton.Left;
+		//Right clicking changes tension. Frames have no tension.
+		changing_tension = e.MouseButton != MouseButton.Left && !IsFrame;
 
 		bool ctrlKey = e.IsControlPressed;
 
@@ -799,8 +747,6 @@ public abstract class BaseEditEngine
 			clicked_generated_point = test_handle.ContainsPoint (current_window_point);
 		}
 
-		clicked_without_modifying = clicked_control_point;
-
 		if (!changing_tension && clicked_generated_point) {
 			//Determine if the currently active tool matches the clicked on shape's corresponding tool, and if not, switch to it.
 			if (ActivateCorrespondingTool (closestShapeIndex, true) != null) {
@@ -813,17 +759,13 @@ public abstract class BaseEditEngine
 
 			//The currently active tool matches the clicked on shape's corresponding tool.
 
-			//Only create a new shape if the user isn't holding the control key down.
-			if (!ctrlKey) {
-				//Create a new ShapesModifyHistoryItem so that the adding of a control point can be undone.
-				doc.History.PushNewItem (new ShapesModifyHistoryItem (this, owner.Icon, ShapeName + " " + Translations.GetString ("Point Added")));
-
+			//Only create a new shape if the user isn't holding the control key down. Clicking a frame's outline only selects it.
+			if (!ctrlKey && !IsFrame) {
 				SEngines[closestShapeIndex].ControlPoints.Insert (closestPointIndex,
 					new ControlPoint (new PointD (current_point.X, current_point.Y), DefaultMidPointTension));
 			}
 
-			//These should be set after creating the history item.
-			SelectedPointIndex = closestPointIndex;
+			SelectedPointIndex = IsFrame ? -1 : closestPointIndex;
 			SelectedShapeIndex = closestShapeIndex;
 
 			ShapeEngine? activeEngine = ActiveShapeEngine;
@@ -844,12 +786,15 @@ public abstract class BaseEditEngine
 				prevSelPoint = new PointD (0d, 0d);
 			}
 
-			//Create a new ShapesHistoryItem so that the creation of a new shape can be undone.
-			doc.History.PushNewItem (new ShapesHistoryItem (this, owner.Icon, ShapeName + " " + Translations.GetString ("Added"),
-				doc.Layers.CurrentUserLayer.Surface.Clone (), doc.Layers.CurrentUserLayer, SelectedPointIndex, SelectedShapeIndex, false));
+			//Only one shape is edited at a time: the previous shapes are baked before a new one starts.
+			FinalizeAllShapes ();
+			is_drawing = true;
 
 			//Create the shape, add its starting points, and add it to SEngines.
 			SEngines.Add (CreateShape (ctrlKey, clicked_control_point, prevSelPoint));
+
+			//Undo is available while a shape is not baked yet, even with an empty history: it discards the shape.
+			actions.Edit.Undo.Sensitive = true;
 
 			//Select the new shape.
 			SelectedShapeIndex = SEngines.Count - 1;
@@ -880,10 +825,6 @@ public abstract class BaseEditEngine
 			if (activeEngine != null)
 				UpdateToolbarSettings (activeEngine);
 		}
-
-		//Determine if the user right clicks outside of any shapes (neither on their control points nor on their generated points).
-		if ((!clicked_control_point && !clicked_generated_point) && changing_tension)
-			clicked_without_modifying = true;
 
 		DrawActiveShape (false, false, true, shiftKey, false, e.IsControlPressed);
 	}
@@ -922,14 +863,6 @@ public abstract class BaseEditEngine
 		if (selPoint == null) {
 			last_mouse_pos = current_point;
 			return;
-		}
-
-		if (clicked_without_modifying) {
-			//Create a new ShapesModifyHistoryItem so that the modification of the shape can be undone.
-			doc.History.PushNewItem (
-							new ShapesModifyHistoryItem (this, owner.Icon, ShapeName + " " + Translations.GetString ("Modified")));
-
-			clicked_without_modifying = false;
 		}
 
 		List<ControlPoint> controlPoints = SelectedShapeEngine!.ControlPoints; // NRT - Code assumes this is not-null
@@ -1056,7 +989,7 @@ public abstract class BaseEditEngine
 
 		//Determine if the drawing should be for finalizing the shape onto the image or drawing it temporarily.
 		if (finalize)
-			dirty = DrawFinalized (activeEngine, true, shiftKey);
+			dirty = DrawFinalized (activeEngine);
 		else
 			dirty = DrawUnfinalized (activeEngine, drawHoverSelection, shiftKey, ctrl_key);
 
@@ -1086,42 +1019,8 @@ public abstract class BaseEditEngine
 	/// Do not call. Use DrawActiveShape.
 	/// </summary>
 	/// <param name="engine"></param>
-	/// <param name="dirty"></param>
-	/// <param name="shiftKey"></param>
-	private RectangleD DrawFinalized (ShapeEngine engine, bool createHistoryItem, bool shiftKey)
-	{
-		Document doc = workspace.ActiveDocument;
-
-		//Finalize the shape onto the CurrentUserLayer.
-
-		ImageSurface? undoSurface = null;
-
-		if (createHistoryItem && engine.ControlPoints.Count > 0) //We only need to create a history item if there was a previous shape.
-			undoSurface = doc.Layers.CurrentUserLayer.Surface.Clone ();
-
-		//Draw the finalized shape.
-		RectangleD dirty = DrawShape (engine, doc.Layers.CurrentUserLayer, false, false, false);
-
-		if (createHistoryItem && undoSurface != null) {
-
-			//Create a new ShapesHistoryItem so that the finalization of the shape can be undone.
-
-			doc.History.PushNewItem (
-				new ShapesHistoryItem (
-					this,
-					owner.Icon,
-					ShapeName + " " + Translations.GetString ("Finalized"),
-					undoSurface,
-					doc.Layers.CurrentUserLayer,
-					SelectedPointIndex,
-					SelectedShapeIndex,
-					false
-				)
-			);
-		}
-
-		return dirty;
-	}
+	private RectangleD DrawFinalized (ShapeEngine engine)
+		=> DrawShape (engine, workspace.ActiveDocument.Layers.CurrentUserLayer, false, false, false);
 
 	/// <summary>
 	/// Do not call. Use DrawActiveShape.
@@ -1218,7 +1117,7 @@ public abstract class BaseEditEngine
 					? LineCap.Square
 					: activeEngine.LineCap;
 
-				RectangleD dirty = g.DrawPolygonal (points.AsSpan (), activeEngine.OutlineColor, lineCap);
+				RectangleD dirty = g.DrawPolygonal (points.AsSpan (), activeEngine.OutlineColor, lineCap, Hardness / 100.0);
 				totalDirty = totalDirty?.Union (dirty) ?? dirty;
 			}
 		}
@@ -1365,8 +1264,6 @@ public abstract class BaseEditEngine
 
 		ImageSurface undoSurface = doc.Layers.CurrentUserLayer.Surface.Clone ();
 
-		int previousSelectedPointIndex = SelectedPointIndex;
-
 		RectangleD? totalDirty = null;
 
 		//Finalize all of the shapes.
@@ -1389,16 +1286,13 @@ public abstract class BaseEditEngine
 			SEngines[SelectedShapeIndex].DrawingLayer.Layer.Clear ();
 
 			//Draw the current shape with the corresponding tool's EditEngine.
-			RectangleD dirty = correspondingEngine.DrawFinalized (SEngines[SelectedShapeIndex], false, false);
+			RectangleD dirty = correspondingEngine.DrawFinalized (SEngines[SelectedShapeIndex]);
 			totalDirty = totalDirty?.Union (dirty) ?? dirty;
+
+			SEngines[SelectedShapeIndex].DrawingLayer.TryRemoveLayer ();
 		}
 
-		//Make sure that the undo surface isn't null.
-		if (undoSurface != null) {
-			//Create a new ShapesHistoryItem so that the finalization of the shapes can be undone.
-			doc.History.PushNewItem (new ShapesHistoryItem (this, owner.Icon, Translations.GetString ("Finalized"),
-				undoSurface, doc.Layers.CurrentUserLayer, previousSelectedPointIndex, prev_selected_shape_index, true));
-		}
+		doc.History.PushNewItem (new SimpleHistoryItem (owner.Icon, owner.Name, undoSurface, doc.Layers.CurrentUserLayerIndex));
 
 		if (totalDirty.HasValue) {
 			InvalidateAfterDraw (totalDirty.Value);
@@ -1420,11 +1314,13 @@ public abstract class BaseEditEngine
 		if (selEngine == null)
 			return;
 
-		if (ShapeType != ShapeTypes.OpenLineCurveSeries && selEngine.ControlPoints.Count == 4) {
+		if (IsFrame) {
 
-			// Constrain to a square / circle.
+			// Constrain a corner to a square / circle. Edge handles are not constrained.
+			if (SelectedPointIndex % 2 != 0)
+				return;
 
-			PointD origin = selEngine.ControlPoints[(SelectedPointIndex + 2) % 4].Position;
+			PointD origin = selEngine.ControlPoints[(SelectedPointIndex + 4) % 8].Position;
 
 			PointD d = current_point - origin;
 
@@ -1606,10 +1502,11 @@ public abstract class BaseEditEngine
 	/// </summary>
 	protected virtual void RecallPreviousSettings ()
 	{
-		dash_pattern_box.ComboBox?.ComboBox.GetEntry ().SetText (prev_dash_pattern);
+		dash_pattern_box.ComboBox?.ComboBox.GetEntry ().SetText (settings.GetSetting (SettingNames.DASH_PATTERN, "-"));
 
 		owner.UseAntialiasing = prev_antialiasing;
-		BrushWidth = prev_outline_width;
+		BrushWidth = settings.GetSetting (SettingNames.BRUSH_WIDTH, BaseTool.DEFAULT_BRUSH_WIDTH);
+		hardness_slider?.SetValue (settings.GetSetting (SettingNames.BRUSH_HARDNESS, BaseTool.DEFAULT_BRUSH_HARDNESS));
 	}
 
 	/// <summary>
@@ -1617,11 +1514,7 @@ public abstract class BaseEditEngine
 	/// </summary>
 	protected virtual void StorePreviousSettings ()
 	{
-		if (dash_pattern_box.ComboBox != null)
-			prev_dash_pattern = dash_pattern_box.ComboBox.ComboBox.GetEntry ().GetText ();
-
 		prev_antialiasing = owner.UseAntialiasing;
-		prev_outline_width = BrushWidth;
 	}
 
 	/// <summary>
@@ -1650,8 +1543,6 @@ public abstract class BaseEditEngine
 		//Create the initial points of the shape. The second point will follow the mouse around until released.
 		if (ctrlKey && clickedOnControlPoint) {
 			startingPoint = prevSelPoint;
-
-			clicked_without_modifying = false;
 		} else {
 			startingPoint = shape_origin;
 		}
@@ -1666,105 +1557,52 @@ public abstract class BaseEditEngine
 		SelectedShapeIndex = SEngines.Count - 1;
 	}
 
-	protected void AddRectanglePoints (bool ctrlKey, bool clickedOnControlPoint, ShapeEngine selEngine, PointD prevSelPoint)
+	protected void AddFramePoints (bool ctrlKey, bool clickedOnControlPoint, ShapeEngine selEngine, PointD prevSelPoint)
 	{
-		PointD startingPoint;
+		//The frame starts collapsed at the starting point. The bottom right corner follows the mouse around until released.
+		PointD startingPoint = (ctrlKey && clickedOnControlPoint) ? prevSelPoint : shape_origin;
 
-		//Create the initial points of the shape. The second point will follow the mouse around until released.
-		if (ctrlKey && clickedOnControlPoint) {
-			startingPoint = prevSelPoint;
+		selEngine.ControlPoints.AddRange (Enumerable.Range (0, 8).Select (_ => new ControlPoint (startingPoint, 0.0)));
 
-			clicked_without_modifying = false;
-		} else {
-			startingPoint = shape_origin;
-		}
-
-
-		selEngine.ControlPoints.Add (new ControlPoint (new PointD (startingPoint.X, startingPoint.Y), 0.0));
-		selEngine.ControlPoints.Add (
-			new ControlPoint (new PointD (startingPoint.X, startingPoint.Y + .01d), 0.0));
-		selEngine.ControlPoints.Add (
-			new ControlPoint (new PointD (startingPoint.X + .01d, startingPoint.Y + .01d), 0.0));
-		selEngine.ControlPoints.Add (
-			new ControlPoint (new PointD (startingPoint.X + .01d, startingPoint.Y), 0.0));
-
-
-		SelectedPointIndex = 2;
+		SelectedPointIndex = 4;
 		SelectedShapeIndex = SEngines.Count - 1;
 	}
 
-	protected void MoveRectangularPoint (List<ControlPoint> controlPoints)
+	/// <summary>
+	/// Moves a handle of a frame shape. The 8 control points go clockwise from the top left corner:
+	/// corners have even indices, edge midpoints have odd indices.
+	/// </summary>
+	protected void MoveFramePoint (List<ControlPoint> controlPoints)
 	{
-		ShapeEngine? selEngine = SelectedShapeEngine;
+		double left = controlPoints[0].Position.X;
+		double top = controlPoints[0].Position.Y;
+		double right = controlPoints[4].Position.X;
+		double bottom = controlPoints[4].Position.Y;
 
-		if (selEngine == null || !selEngine.Closed || controlPoints.Count != 4)
-			return;
+		int i = SelectedPointIndex;
 
-		//Figure out the indices of the surrounding points. The lowest point index should be 0 and the highest 3.
+		if (i is 0 or 6 or 7)
+			left = current_point.X;
+		if (i is 2 or 3 or 4)
+			right = current_point.X;
+		if (i is 0 or 1 or 2)
+			top = current_point.Y;
+		if (i is 4 or 5 or 6)
+			bottom = current_point.Y;
 
-		int previousPointIndex = SelectedPointIndex - 1;
-		int nextPointIndex = SelectedPointIndex + 1;
-		int oppositePointIndex = SelectedPointIndex + 2;
+		SetFramePoints (controlPoints, left, top, right, bottom);
+	}
 
-		if (previousPointIndex < 0)
-			previousPointIndex = controlPoints.Count - 1;
+	public static void SetFramePoints (List<ControlPoint> controlPoints, double left, double top, double right, double bottom)
+	{
+		double midX = (left + right) / 2;
+		double midY = (top + bottom) / 2;
 
-		if (nextPointIndex >= controlPoints.Count) {
-			nextPointIndex = 0;
-			oppositePointIndex = 1;
-		} else if (oppositePointIndex >= controlPoints.Count) {
-			oppositePointIndex = 0;
-		}
+		PointD[] positions = [
+			new (left, top), new (midX, top), new (right, top), new (right, midY),
+			new (right, bottom), new (midX, bottom), new (left, bottom), new (left, midY)];
 
-
-		ControlPoint previousPoint = controlPoints.ElementAt (previousPointIndex);
-		ControlPoint oppositePoint = controlPoints.ElementAt (oppositePointIndex);
-		ControlPoint nextPoint = controlPoints.ElementAt (nextPointIndex);
-
-
-		//Now that we know the indexed order of the points, we can align everything properly.
-		if (SelectedPointIndex == 2 || SelectedPointIndex == 0) {
-			//Control point visual order (counter-clockwise order always goes selectedPoint, previousPoint, oppositePoint, nextPoint,
-			//where moving point == selectedPoint):
-			//
-			//static (opposite) point		horizontally aligned point
-			//vertically aligned point		moving point
-			//OR
-			//moving point					vertically aligned point
-			//horizontally aligned point	static (opposite) point
-
-
-			//Update the previous control point's position.
-			previousPoint.Position = new PointD (previousPoint.Position.X, current_point.Y);
-
-			//Update the next control point's position.
-			nextPoint.Position = new PointD (current_point.X, nextPoint.Position.Y);
-
-
-			//Even though it's supposed to be static, just in case the points get out of order
-			//(they do sometimes), update the opposite control point's position.
-			oppositePoint.Position = new PointD (previousPoint.Position.X, nextPoint.Position.Y);
-		} else {
-			//Control point visual order (counter-clockwise order always goes selectedPoint, previousPoint, oppositePoint, nextPoint,
-			//where moving point == selectedPoint):
-			//
-			//horizontally aligned point	static (opposite) point
-			//moving point					vertically aligned point
-			//OR
-			//vertically aligned point		moving point
-			//static (opposite) point		horizontally aligned point
-
-
-			//Update the previous control point's position.
-			previousPoint.Position = new PointD (current_point.X, previousPoint.Position.Y);
-
-			//Update the next control point's position.
-			nextPoint.Position = new PointD (nextPoint.Position.X, current_point.Y);
-
-
-			//Even though it's supposed to be static, just in case the points get out of order
-			//(they do sometimes), update the opposite control point's position.
-			oppositePoint.Position = new PointD (nextPoint.Position.X, previousPoint.Position.Y);
-		}
+		controlPoints.Clear ();
+		controlPoints.AddRange (positions.Select (p => new ControlPoint (p, 0.0)));
 	}
 }

@@ -9,7 +9,8 @@ namespace Pinta.Gui.Widgets;
 /// </summary>
 public sealed class ImageThumbnailStrip : Gtk.Box
 {
-	private const int THUMBNAIL_SIZE = 28;
+	private const int THUMBNAIL_WIDTH = 48;
+	private const int THUMBNAIL_HEIGHT = 28;
 
 	private sealed record Thumbnail (Gtk.Overlay Root, Gtk.ToggleButton Button, Gtk.Picture Picture, Gtk.Label DirtyMark);
 
@@ -31,10 +32,10 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 	private void AddDocument (Document doc)
 	{
 		Gtk.Picture picture = new () {
-			CanShrink = true,
-			ContentFit = Gtk.ContentFit.Contain,
+			CanShrink = false,
+			Halign = Gtk.Align.Center,
+			Valign = Gtk.Align.Center,
 		};
-		picture.SetSizeRequest (THUMBNAIL_SIZE, THUMBNAIL_SIZE);
 
 		Gtk.ToggleButton button = new () { Child = picture };
 		button.AddCssClass (AdwaitaStyles.Flat);
@@ -100,12 +101,18 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 	{
 		using ImageSurface flattened = doc.GetFlattenedImage ();
 
-		double scale = (double) THUMBNAIL_SIZE / System.Math.Max (flattened.Width, flattened.Height);
+		double scale = System.Math.Min ((double) THUMBNAIL_WIDTH / flattened.Width, (double) THUMBNAIL_HEIGHT / flattened.Height);
 		int width = System.Math.Max (1, (int) (flattened.Width * scale));
 		int height = System.Math.Max (1, (int) (flattened.Height * scale));
 
-		ImageSurface thumbnail = CairoExtensions.CreateImageSurface (Format.Argb32, width, height);
+		// The texture always has the cell size, with the image centered in it, so the image proportions never affect the layout.
+		ImageSurface thumbnail = CairoExtensions.CreateImageSurface (Format.Argb32, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
 		using (Context g = new (thumbnail)) {
+			g.Translate ((THUMBNAIL_WIDTH - width) / 2, (THUMBNAIL_HEIGHT - height) / 2);
+			g.Rectangle (0, 0, width, height);
+			g.Clip ();
+			g.SetSource (CairoExtensions.CreateTransparentBackgroundPattern (4));
+			g.Paint ();
 			g.Scale (scale, scale);
 			g.SetSourceSurface (flattened, 0, 0);
 			g.Paint ();
@@ -113,8 +120,8 @@ public sealed class ImageThumbnailStrip : Gtk.Box
 		thumbnail.Flush ();
 
 		Gdk.MemoryTexture texture = Gdk.MemoryTexture.New (
-			width,
-			height,
+			THUMBNAIL_WIDTH,
+			THUMBNAIL_HEIGHT,
 			Gdk.MemoryFormat.B8g8r8a8Premultiplied,
 			GLib.Bytes.New (thumbnail.GetData ()),
 			(nuint) thumbnail.Stride);

@@ -169,7 +169,19 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 			return;
 		}
 
-		SetCurrentTool (new_tool);
+		SwitchTool (new_tool);
+	}
+
+	/// <summary>
+	/// Switching tools by the user commits the current tool, the same as pressing Escape.
+	/// </summary>
+	private void SwitchTool (BaseTool tool)
+	{
+		if (tool == CurrentTool)
+			return;
+
+		Commit ();
+		SetCurrentTool (tool);
 	}
 
 	private BaseTool? FindTool (string name)
@@ -208,8 +220,9 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 		chrome_manager.ToolToolBar.Append (ToolButton);
 		chrome_manager.ToolToolBar.Append (ToolSeparator);
 
-		chrome_manager.ToolToolBar.Append (ToolWidgetsScroll);
+		chrome_manager.ToolToolBar.Append (ToolWidgetsWrap);
 		tool.DoBuildToolBar (ToolWidgetsBox);
+		WrapToolWidgets ();
 
 		workspace_manager.Invalidate ();
 		chrome_manager.SetStatusBarText ($" {tool.Name}: {tool.StatusBarText}");
@@ -242,7 +255,7 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 		if (FindNextTool (shortcut) is not BaseTool tool)
 			return false;
 
-		SetCurrentTool (tool);
+		SwitchTool (tool);
 		return true;
 	}
 
@@ -274,7 +287,10 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 
 	private void DeactivateTool (BaseTool tool, BaseTool? newTool)
 	{
-		ToolWidgetsBox.RemoveAll ();
+		while (ToolWidgetsWrap.GetFirstChild () is Gtk.Box group) {
+			group.RemoveAll ();
+			ToolWidgetsWrap.Remove (group);
+		}
 		chrome_manager.ToolToolBar.RemoveAll ();
 
 		tool.DoDeactivated (workspace_manager.ActiveDocumentOrDefault, newTool);
@@ -384,7 +400,7 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 	private Gtk.MenuButton? tool_button;
 	private Gtk.Separator? tool_sep;
 	private Gtk.Box? tool_widgets_box;
-	private Gtk.ScrolledWindow? tool_widgets_scroll;
+	private Adw.WrapBox? tool_widgets_wrap;
 
 	private Gtk.Label ToolLabel => tool_label ??= Gtk.Label.New (string.Format (" {0}:  ", Translations.GetString ("Tool")));
 	private Gtk.MenuButton ToolButton => tool_button ??= CreateToolButton ();
@@ -398,7 +414,7 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 		tool_menu = Gio.Menu.New ();
 
 		Gio.SimpleAction action = Gio.SimpleAction.New (TOOL_ACTION, GLib.VariantType.New ("s"));
-		action.OnActivate += (sender, args) => SetCurrentTool (args.Parameter!.GetString (out _));
+		action.OnActivate += (sender, args) => SwitchTool (FindTool (args.Parameter!.GetString (out _))!);
 
 		Gio.SimpleActionGroup group = Gio.SimpleActionGroup.New ();
 		group.AddAction (action);
@@ -427,16 +443,26 @@ public sealed class ToolManager : IEnumerable<BaseTool>, IToolService
 	}
 	private Gtk.Separator ToolSeparator => tool_sep ??= GtkExtensions.CreateToolBarSeparator ();
 	private Gtk.Box ToolWidgetsBox => tool_widgets_box ??= Gtk.Box.New (Gtk.Orientation.Horizontal, 0);
-	// Scroll the toolbar contents if they are very long (e.g. the line/curve tool).
-	private Gtk.ScrolledWindow ToolWidgetsScroll
-		=> tool_widgets_scroll ??= new Gtk.ScrolledWindow () {
-			Child = ToolWidgetsBox,
-			HscrollbarPolicy = Gtk.PolicyType.Automatic,
-			VscrollbarPolicy = Gtk.PolicyType.Never,
-			HasFrame = false,
-			OverlayScrolling = true,
-			WindowPlacement = Gtk.CornerType.BottomRight,
-			Hexpand = true,
-			Halign = Gtk.Align.Fill,
-		};
+	// Long toolbars (e.g. the line/curve tool) continue on the next line.
+	private Adw.WrapBox ToolWidgetsWrap => tool_widgets_wrap ??= new Adw.WrapBox { Hexpand = true };
+
+	/// <summary>
+	/// Moves the widgets built by the tool into the wrapping toolbar, grouping each separator or label
+	/// with the controls after it, so that a line breaks only between groups.
+	/// </summary>
+	private void WrapToolWidgets ()
+	{
+		Gtk.Box group = Gtk.Box.New (Gtk.Orientation.Horizontal, 0);
+		ToolWidgetsWrap.Append (group);
+
+		while (ToolWidgetsBox.GetFirstChild () is Gtk.Widget child) {
+			if (child is Gtk.Separator || (child is Gtk.Label && group.GetLastChild () is not Gtk.Separator)) {
+				group = Gtk.Box.New (Gtk.Orientation.Horizontal, 0);
+				ToolWidgetsWrap.Append (group);
+			}
+
+			ToolWidgetsBox.Remove (child);
+			group.Append (child);
+		}
+	}
 }

@@ -53,7 +53,6 @@ public abstract class ArrowedEditEngine : BaseEditEngine
 	// NRT - These are all set by HandleBuildToolBar
 	private ISettingsService settings = null!;
 	private string tool_prefix = null!;
-	private Gtk.Box toolbar = null!;
 	private bool extra_toolbar_items_added = false;
 
 	private bool ArrowOneEnabled => ArrowOneEnabledCheckBox.Active;
@@ -90,8 +89,6 @@ public abstract class ArrowedEditEngine : BaseEditEngine
 
 		this.settings = settings;
 		tool_prefix = toolPrefix;
-		toolbar = tb;
-
 		tb.Append (ArrowSeparator);
 		tb.Append (ArrowLabel);
 		tb.Append (ArrowOneEnabledCheckBox);
@@ -130,8 +127,9 @@ public abstract class ArrowedEditEngine : BaseEditEngine
 
 			// Carefully insert after our last toolbar widget, since the Antialiasing dropdown may have been added already.
 			Gtk.Widget after_widget = ArrowTwoEnabledCheckBox;
+			Gtk.Box parent = (Gtk.Box) after_widget.Parent!;
 			foreach (var widget in GetArrowOptionToolbarItems ()) {
-				toolbar.InsertChildAfter (widget, after_widget);
+				parent.InsertChildAfter (widget, after_widget);
 				after_widget = widget;
 			}
 
@@ -139,7 +137,7 @@ public abstract class ArrowedEditEngine : BaseEditEngine
 		} else if (extra_toolbar_items_added) {
 
 			foreach (var widget in GetArrowOptionToolbarItems ())
-				toolbar.Remove (widget);
+				((Gtk.Box) widget.Parent!).Remove (widget);
 
 			extra_toolbar_items_added = false;
 		}
@@ -239,7 +237,8 @@ public abstract class ArrowedEditEngine : BaseEditEngine
 					g,
 					lCSEngine.OutlineColor,
 					genPoints[0].Position,
-					genPoints[1].Position);
+					genPoints[1].Position,
+					Hardness / 100.0);
 				totalDirty = totalDirty?.Union (dirty) ?? dirty;
 			}
 
@@ -248,7 +247,8 @@ public abstract class ArrowedEditEngine : BaseEditEngine
 					g,
 					lCSEngine.OutlineColor,
 					genPoints[^1].Position,
-					genPoints[^2].Position);
+					genPoints[^2].Position,
+					Hardness / 100.0);
 				totalDirty = totalDirty?.Union (dirty) ?? dirty;
 			}
 		}

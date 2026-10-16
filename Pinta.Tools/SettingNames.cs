@@ -28,8 +28,7 @@ internal static class SettingNames
 	internal const string GRADIENT_TYPE = "gradient-type";
 	internal const string GRADIENT_COLOR_MODE = "gradient-color-mode";
 
-	internal const string FREEFORM_SHAPE_FILL_TYPE = "freeform-shape-fill-type";
-	internal const string FREEFORM_SHAPE_DASH_PATTERN = "freeform-shape-dash_pattern";
+	internal const string DASH_PATTERN = "dash-pattern";
 
 	internal const string LASSO_MODE = "lasso-mode";
 
@@ -54,17 +53,11 @@ internal static class SettingNames
 	internal static string FloodToolFillTolerance (FloodTool tool)
 		=> $"{tool.GetType ().Name.ToLowerInvariant ()}-fill-tolerance";
 
-	internal static string BrushWidth (string prefix)
-		=> $"{prefix}-brush-width";
-
 	internal static string FillStyle (string prefix)
 		=> $"{prefix}-fill-style";
 
 	internal static string ShapeType (string prefix)
 		=> $"{prefix}-shape-type";
-
-	internal static string DashPattern (string prefix)
-		=> $"{prefix}-dash-pattern";
 
 	internal static string Radius (string prefix)
 		=> $"{prefix}-radius";

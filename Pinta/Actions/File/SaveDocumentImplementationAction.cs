@@ -213,11 +213,16 @@ internal sealed class SaveDocumentImplmentationAction : IActionHandler
 			return false;
 		}
 
+		if (format.Exporter is JpegFormat && !document.HasBeenSavedInSession && !this.file.RaiseModifyCompression (parent))
+			return false;
+
 		// Commit any pending changes
 		tools.Commit ();
 
 		try {
-			format.Exporter.Export (document, file, parent);
+			await chrome.RunInBackground (
+				Translations.GetString ("Save Image File"),
+				() => format.Exporter.Export (document, file, parent));
 
 		} catch (GLib.GException e) when (e.Message == "Image too large to be saved as ICO") {
 
@@ -236,10 +241,6 @@ internal sealed class SaveDocumentImplmentationAction : IActionHandler
 			string secondary = Translations.GetString ("You do not have access to modify '{0}'. The file or folder may be read-only.", file);
 
 			await chrome.ShowMessageDialog (parent, primary, secondary);
-
-			return false;
-
-		} catch (OperationCanceledException) {
 
 			return false;
 		}

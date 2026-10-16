@@ -71,13 +71,7 @@ internal sealed class PasteAction : IActionHandler
 		var doc = workspace.ActiveDocument;
 
 		// Get the scroll position in canvas coordinates
-		var view = (Gtk.Viewport) doc.Workspace.Canvas.Parent!;
-
-		PointD viewPoint = new (
-			X: view.Hadjustment!.Value,
-			Y: view.Vadjustment!.Value);
-
-		PointD canvasPos = doc.Workspace.ViewPointToCanvas (viewPoint);
+		PointD canvasPos = doc.Workspace.VisiblePointToCanvas (PointD.Zero);
 
 		// Paste into the active document.
 		// The 'false' argument indicates that paste should be
@@ -152,7 +146,7 @@ internal sealed class PasteAction : IActionHandler
 					Height: Math.Max (canvas_size.Height, cb_image.Height)
 				);
 
-				workspace.ResizeCanvas (newSize, Pinta.Core.Anchor.Center, paste_action);
+				await workspace.ResizeCanvas (newSize, Pinta.Core.Anchor.Center, paste_action);
 				actions.View.UpdateCanvasScale ();
 
 			} else if (response != Gtk.ResponseType.Reject) // cancelled

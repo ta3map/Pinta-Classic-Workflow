@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Threading.Tasks;
 using Pinta.Core;
 
 namespace Pinta.Actions;
@@ -62,14 +63,14 @@ internal sealed class OpenDocumentAction : IActionHandler
 		file.OpenRecent.OnActivate -= OpenRecentActivated;
 	}
 
-	private void OpenRecentActivated (Gio.SimpleAction sender, Gio.SimpleAction.ActivateSignalArgs args)
+	private async void OpenRecentActivated (Gio.SimpleAction sender, Gio.SimpleAction.ActivateSignalArgs args)
 	{
-		OpenFile (Gio.FileHelper.NewForUri (args.Parameter!.GetString (out _)));
+		await OpenFile (Gio.FileHelper.NewForUri (args.Parameter!.GetString (out _)));
 	}
 
-	private void OpenFile (Gio.File file)
+	private async Task OpenFile (Gio.File file)
 	{
-		if (!workspace.OpenFile (file))
+		if (!await workspace.OpenFile (file))
 			return;
 
 		recent_files.AddFile (file);
@@ -103,7 +104,7 @@ internal sealed class OpenDocumentAction : IActionHandler
 			return;
 
 		foreach (var file in selection)
-			OpenFile (file);
+			await OpenFile (file);
 	}
 
 	private static Gtk.FileFilter CreateCatchAllFilter ()

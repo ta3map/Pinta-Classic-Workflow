@@ -142,6 +142,8 @@ public sealed class TextTool : BaseTool
 	private Gtk.Label outline_width_label = null!;
 	private Gtk.Separator join_sep = null!;
 	private ToolBarDropDownButton join_btn = null!;
+	private Gtk.Label hardness_label = null!;
+	private Gtk.Scale hardness_slider = null!;
 
 	protected override void OnBuildToolBar (Gtk.Box tb)
 	{
@@ -482,6 +484,19 @@ public sealed class TextTool : BaseTool
 
 		tb.Append (join_btn);
 
+		hardness_label ??= Gtk.Label.New ($" {Translations.GetString ("Hardness")}: ");
+		tb.Append (hardness_label);
+
+		if (hardness_slider == null) {
+			hardness_slider = GtkExtensions.CreateToolBarSlider (0, 100, 1, Settings.GetSetting (SettingNames.BRUSH_HARDNESS, DEFAULT_BRUSH_HARDNESS));
+			hardness_slider.OnValueChanged += (_, _) => {
+				Settings.PutSetting (SettingNames.BRUSH_HARDNESS, (int) hardness_slider.GetValue ());
+				HandleFontChanged ();
+			};
+		}
+
+		tb.Append (hardness_slider);
+
 		outline_width.Visible = outline_width_label.Visible = outline_sep.Visible = join_btn.Visible = join_sep.Visible = StrokeText;
 
 		UpdateFont ();
@@ -662,6 +677,12 @@ public sealed class TextTool : BaseTool
 	private int OutlineWidth
 		=> outline_width.GetValueAsInt ();
 
+	private double Hardness
+		=> hardness_slider.GetValue () / 100.0;
+
+	private double Feather
+		=> font_size.GetValueAsInt () * (1 - Hardness) / 8;
+
 	private bool StrokeText
 		=> fill_button.SelectedItem.GetTagOrDefault (0) >= 1 && fill_button.SelectedItem.GetTagOrDefault (0) != 3;
 
@@ -677,6 +698,8 @@ public sealed class TextTool : BaseTool
 	protected override void OnActivated (Document? document)
 	{
 		base.OnActivated (document);
+
+		hardness_slider?.SetValue (Settings.GetSetting (SettingNames.BRUSH_HARDNESS, DEFAULT_BRUSH_HARDNESS));
 
 		// We may need to redraw our text when the color changes
 		palette.PrimaryColorChanged += HandlePintaCorePalettePrimaryColorChanged;
@@ -962,7 +985,7 @@ public sealed class TextTool : BaseTool
 						break;
 
 					case Gdk.Constants.KEY_Escape:
-						StopEditing (false);
+						StopEditing (true);
 						return true;
 					case Gdk.Constants.KEY_Insert:
 						if (e.IsShiftPressed) {
@@ -1018,6 +1041,9 @@ public sealed class TextTool : BaseTool
 				case Gdk.Constants.KEY_bracketright:
 					font_size.Adjustment!.Value++;
 					return true;
+				case Gdk.Constants.KEY_Escape:
+					FinalizeText ();
+					return false;
 			}
 		}
 
@@ -1197,7 +1223,7 @@ public sealed class TextTool : BaseTool
 		RectangleI r =
 			CurrentTextLayout
 			.GetLayoutBounds ()
-			.Inflated (10 + OutlineWidth, 10 + OutlineWidth);
+			.Inflated (10 + OutlineWidth + (int) Math.Ceiling (Feather), 10 + OutlineWidth + (int) Math.Ceiling (Feather));
 
 		InflateAndInvalidate (r);
 		CurrentTextBounds = r;
@@ -1252,8 +1278,6 @@ public sealed class TextTool : BaseTool
 
 		g.MoveTo (CurrentTextEngine.Origin.X, CurrentTextEngine.Origin.Y);
 
-		g.SetSourceColor (CurrentTextEngine.PrimaryColor);
-
 		//Fill in background
 		if (BackgroundFill) {
 			using Context g2 = new (surf);
@@ -1263,23 +1287,20 @@ public sealed class TextTool : BaseTool
 
 		// Draws the text stroke
 		if (StrokeText) {
-			g.SetSourceColor (FillText ? CurrentTextEngine.SecondaryColor : CurrentTextEngine.PrimaryColor);
-			g.LineWidth = OutlineWidth;
 			g.LineJoin = (Cairo.LineJoin) join_btn.SelectedIndex;
 
 			PangoCairo.Functions.LayoutPath (g, CurrentTextLayout.Layout);
-			g.Stroke ();
+			double strokeWidth = OutlineWidth + 2 * Feather;
+			g.StrokeSoft (FillText ? CurrentTextEngine.SecondaryColor : CurrentTextEngine.PrimaryColor, strokeWidth, OutlineWidth / strokeWidth);
 
-			// Position resets after g.Stroke ();
-			if (FillText) {
-				g.MoveTo (CurrentTextEngine.Origin.X, CurrentTextEngine.Origin.Y);
-				g.SetSourceColor (CurrentTextEngine.PrimaryColor);
-			}
+			// Position resets after the stroke
+			g.MoveTo (CurrentTextEngine.Origin.X, CurrentTextEngine.Origin.Y);
 		}
 
 		// Draws the text fill
 		if (FillText) {
-			PangoCairo.Functions.ShowLayout (g, CurrentTextLayout.Layout);
+			PangoCairo.Functions.LayoutPath (g, CurrentTextLayout.Layout);
+			g.FillSoft (CurrentTextEngine.PrimaryColor, Feather);
 		}
 
 		if (showCursor) {

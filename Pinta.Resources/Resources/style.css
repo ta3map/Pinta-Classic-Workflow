@@ -85,6 +85,15 @@ scale slider {
     box-shadow: 0px 2px 8px alpha(black, 0.35);
 }
 
+.floating-pad.docked {
+    background-color: @window_bg_color;
+    box-shadow: none;
+}
+
+.overlay-panel {
+    background-color: @window_bg_color;
+}
+
 .floating-pad-header {
     padding: 2px;
 }

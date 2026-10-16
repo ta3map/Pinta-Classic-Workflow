@@ -239,19 +239,27 @@ public sealed class Document
 	// Flip image horizontally
 	public void FlipImageHorizontal ()
 	{
+		FlipLayersHorizontal ();
+		Workspace.Invalidate ();
+	}
+
+	public void FlipLayersHorizontal ()
+	{
 		foreach (var layer in Layers.UserLayers)
 			layer.FlipHorizontal ();
-
-		Workspace.Invalidate ();
 	}
 
 	// Flip image vertically
 	public void FlipImageVertical ()
 	{
+		FlipLayersVertical ();
+		Workspace.Invalidate ();
+	}
+
+	public void FlipLayersVertical ()
+	{
 		foreach (var layer in Layers.UserLayers)
 			layer.FlipVertical ();
-
-		Workspace.Invalidate ();
 	}
 
 	/// <summary>
@@ -309,7 +317,7 @@ public sealed class Document
 	/// Optionally, the history item for resizing the canvas can be added to
 	/// a CompoundHistoryItem if it is part of a larger action (e.g. pasting an image).
 	/// </param>
-	public void ResizeCanvas (
+	public async Task ResizeCanvas (
 		Size newSize,
 		Anchor anchor,
 		CompoundHistoryItem? compoundAction)
@@ -328,10 +336,12 @@ public sealed class Document
 
 		double scale = Workspace.Scale;
 
-		ImageSize = newSize;
+		await PintaCore.Chrome.RunInBackground (Translations.GetString ("Resize Canvas"), () => {
+			foreach (var layer in Layers.UserLayers)
+				layer.ResizeCanvas (newSize, anchor);
+		});
 
-		foreach (var layer in Layers.UserLayers)
-			layer.ResizeCanvas (newSize, anchor);
+		ImageSize = newSize;
 
 		hist.FinishSnapshotOfImage ();
 
@@ -345,7 +355,7 @@ public sealed class Document
 		Workspace.Scale = scale;
 	}
 
-	public void ResizeImage (
+	public async Task ResizeImage (
 		Size newSize,
 		ResamplingMode resamplingMode)
 	{
@@ -360,10 +370,12 @@ public sealed class Document
 
 		double scale = Workspace.Scale;
 
-		ImageSize = newSize;
+		await PintaCore.Chrome.RunInBackground (Translations.GetString ("Resize Image"), () => {
+			foreach (var layer in Layers.UserLayers)
+				layer.Resize (newSize, resamplingMode);
+		});
 
-		foreach (var layer in Layers.UserLayers)
-			layer.Resize (newSize, resamplingMode);
+		ImageSize = newSize;
 
 		hist.FinishSnapshotOfImage ();
 
@@ -395,12 +407,23 @@ public sealed class Document
 	/// Rotates the image by the specified angle (in degrees)
 	/// </summary>
 	private void RotateImage (DegreesAngle angle)
+		=> FinishRotation (RotateLayers (angle));
+
+	/// <summary>
+	/// Rotates the layer surfaces only, returning the new image size for <see cref="FinishRotation"/>.
+	/// </summary>
+	public Size RotateLayers (DegreesAngle angle)
 	{
 		Size new_size = Layer.RotateDimensions (ImageSize, angle);
 
 		foreach (var layer in Layers.UserLayers)
 			layer.Rotate (angle, ImageSize, new_size);
 
+		return new_size;
+	}
+
+	public void FinishRotation (Size new_size)
+	{
 		ImageSize = new_size;
 		Workspace.ViewSize = new_size;
 

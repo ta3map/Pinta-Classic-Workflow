@@ -63,7 +63,7 @@ internal sealed class ResizeCanvasAction : IActionHandler
 		ResizeCanvasOptions? response = await PromptResize ();
 		if (!response.HasValue) return;
 		ResizeCanvasOptions resizing = response.Value;
-		workspace.ResizeCanvas (resizing.NewSize, resizing.Anchor, resizing.CompoundAction);
+		await workspace.ResizeCanvas (resizing.NewSize, resizing.Anchor, resizing.CompoundAction);
 	}
 
 	private async Task<ResizeCanvasOptions?> PromptResize ()

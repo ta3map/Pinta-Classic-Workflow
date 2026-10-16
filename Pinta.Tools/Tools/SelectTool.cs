@@ -25,16 +25,15 @@
 // THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
 using Pinta.Core;
 
 namespace Pinta.Tools;
 
+/// <summary>
+/// Draws a new selection shape on every drag. Resizing an existing selection is done with the Move Selection tool.
+/// </summary>
 public abstract class SelectTool : BaseTool
 {
-	private readonly IToolService tools;
 	private readonly IWorkspaceService workspace;
 
 	private SelectionHistoryItem? hist = default;
@@ -44,16 +43,12 @@ public abstract class SelectTool : BaseTool
 	public override bool IsSelectionTool => true;
 	protected override bool ShowAntialiasingButton => false;
 	private readonly RectangleHandle handle;
-	public override IEnumerable<IToolHandle> Handles => [handle];
 
 	public SelectTool (IServiceProvider services) : base (services)
 	{
-		tools = services.GetService<IToolService> ();
 		workspace = services.GetService<IWorkspaceService> ();
 
 		handle = new (workspace) { InvertIfNegative = true };
-
-		workspace.SelectionChanged += AfterSelectionChange;
 	}
 
 	protected abstract void DrawShape (Document document, RectangleD r, Layer l);
@@ -73,28 +68,23 @@ public abstract class SelectTool : BaseTool
 		hist = new SelectionHistoryItem (workspace, Icon, Name);
 		hist.TakeSnapshot ();
 
-		if (!handle.BeginDrag (e.PointDouble, document.ImageSize)) {
-			// Start drawing a new rectangle.
-			combine_mode = PintaCore.Workspace.SelectionHandler.DetermineCombineMode (e);
+		combine_mode = PintaCore.Workspace.SelectionHandler.DetermineCombineMode (e);
 
-			double x = Math.Round (Math.Clamp (e.PointDouble.X, 0, document.ImageSize.Width));
-			double y = Math.Round (Math.Clamp (e.PointDouble.Y, 0, document.ImageSize.Height));
-			handle.Rectangle = new (x, y, 0.0, 0.0);
+		double x = Math.Round (Math.Clamp (e.PointDouble.X, 0, document.ImageSize.Width));
+		double y = Math.Round (Math.Clamp (e.PointDouble.Y, 0, document.ImageSize.Height));
+		handle.Rectangle = new (x, y, 0.0, 0.0);
 
-			document.PreviousSelection = document.Selection.Clone ();
-			document.Selection.SelectionPolygons.Clear ();
+		document.PreviousSelection = document.Selection.Clone ();
+		document.Selection.SelectionPolygons.Clear ();
 
-			if (!handle.BeginDrag (new PointD (x, y), document.ImageSize))
-				throw new InvalidOperationException ("Should be able to start drawing a new rectangle!");
-		}
+		if (!handle.BeginDrag (new PointD (x, y), document.ImageSize))
+			throw new InvalidOperationException ("Should be able to start drawing a new rectangle!");
 	}
 
 	protected override void OnMouseMove (Document document, ToolMouseEventArgs e)
 	{
-		if (!handle.IsDragging) {
-			UpdateCursor (e.WindowPoint);
+		if (!handle.IsDragging)
 			return;
-		}
 
 		handle.UpdateDrag (e.PointDouble, e.IsShiftPressed);
 
@@ -120,9 +110,6 @@ public abstract class SelectTool : BaseTool
 			handle.EndDrag ();
 		} else {
 			// If the user didn't move the mouse, they want to deselect
-
-			// Mark as being done interactive drawing before invoking the deselect action.
-			// This will allow AfterSelectionChanged() to clear the selection.
 			handle.EndDrag ();
 
 			if (hist != null) {
@@ -134,20 +121,6 @@ public abstract class SelectTool : BaseTool
 
 			PintaCore.Actions.Edit.Deselect.Activate ();
 		}
-
-		// Update the mouse cursor.
-		UpdateCursor (e.WindowPoint);
-	}
-
-	protected override void OnActivated (Document? document)
-	{
-		base.OnActivated (document);
-
-		// When entering the tool, update the selection handles from the
-		// document's current selection.
-		if (document is null) return;
-
-		LoadFromDocument (document);
 	}
 
 	protected override void OnSaveSettings (ISettingsService settings)
@@ -161,54 +134,6 @@ public abstract class SelectTool : BaseTool
 	{
 		document.Selection.Visible = true;
 
-		ShowHandles (true);
-
-		RectangleD rect = handle.Rectangle;
-		DrawShape (document, rect, document.Layers.SelectionLayer);
-	}
-
-	private void ShowHandles (bool visible)
-	{
-		handle.Active = visible;
-	}
-
-	private void UpdateCursor (PointD viewPos)
-	{
-		Gdk.Cursor? cursor = handle.Active ?
-			handle.GetCursorAtPoint (viewPos) :
-			null;
-
-		SetCursor (cursor ?? DefaultCursor);
-	}
-
-	protected override void OnAfterUndo (Document document)
-	{
-		base.OnAfterUndo (document);
-		LoadFromDocument (document);
-	}
-
-	protected override void OnAfterRedo (Document document)
-	{
-		base.OnAfterRedo (document);
-		LoadFromDocument (document);
-	}
-
-	private void AfterSelectionChange (object? sender, EventArgs event_args)
-	{
-		if (handle.IsDragging || !workspace.HasOpenDocuments)
-			return;
-
-		// TODO: Try to remove this ActiveDocument call
-		LoadFromDocument (workspace.ActiveDocument);
-	}
-
-	/// <summary>
-	/// Initialize from the document's selection.
-	/// </summary>
-	private void LoadFromDocument (Document document)
-	{
-		DocumentSelection selection = document.Selection;
-		handle.Rectangle = selection.HandleBounds;
-		ShowHandles (document.Selection.Visible && tools.CurrentTool == this);
+		DrawShape (document, handle.Rectangle, document.Layers.SelectionLayer);
 	}
 }

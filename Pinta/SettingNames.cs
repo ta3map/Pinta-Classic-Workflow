@@ -14,6 +14,9 @@ internal static class SettingNames
 	internal const string RULER_SHOWN = "ruler-shown";
 	internal const string PIXEL_GRID_SHOWN = "pixel-grid-shown";
 	internal const string PAD_INACTIVE_OPACITY = "pad-inactive-opacity";
+	internal const string TOP_PANELS_INACTIVE_OPACITY = "top-panels-inactive-opacity";
+	internal const string STATUSBAR_INACTIVE_OPACITY = "statusbar-inactive-opacity";
+	internal const string WORKSPACE_COLOR = "workspace-color";
 	internal const string IMAGE_TABS_SHOWN = "image-tabs-shown";
 	internal const string TOOLBAR_SHOWN = "toolbar-shown";
 	internal const string STATUSBAR_SHOWN = "statusbar-shown";

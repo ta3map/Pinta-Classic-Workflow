@@ -208,13 +208,15 @@ public sealed class GradientTool : BaseTool
 
 	private void Finalize (Document? document)
 	{
-		if (document != null) {
-			undo_data = Data;
-			undo_surface = document.Layers.CurrentUserLayer.Surface.Clone ();
-			document.History.PushNewItem (new GradientHistoryItem (Icon, Name + " " + Translations.GetString ("Finalized"), undo_surface,
-						document.Layers.CurrentUserLayerIndex, undo_data!.Value, this));
-		}
+		if (document == null || !handle.Active)
+			return;
+
+		undo_data = Data;
+		undo_surface = document.Layers.CurrentUserLayer.Surface.Clone ();
+		document.History.PushNewItem (new GradientHistoryItem (Icon, Name + " " + Translations.GetString ("Finalized"), undo_surface,
+					document.Layers.CurrentUserLayerIndex, undo_data!.Value, this));
 		handle.Active = false;
+		document.Workspace.Invalidate ();
 	}
 
 	private void UpdateCursorAndHandle (PointD canvasPoint, Document document)
