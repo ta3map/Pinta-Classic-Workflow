@@ -5,9 +5,20 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      targets:
+        description: Packages to build
+        type: choice
+        options: [all, linux]
+        default: all
+      tag:
+        description: Existing release tag to upload the packages to (empty - do not upload)
+        type: string
+        default: ''
 
 jobs:
   flatpak:
+    if: inputs.targets != 'linux'
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
@@ -20,7 +31,40 @@ jobs:
         manifest-path: flatpak/io.github.ta3map.PintaClassicWorkflow.yml
         cache-key: flatpak-builder-${{ github.sha }}
 
+  gtk-bundle:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+    - name: Cache GTK bundle
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: gtk-bundle
+        key: gtk-bundle-${{ hashFiles('installer/linux/build_gtk_bundle.sh') }}-ubuntu-24.04
+    - name: Install Build Dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        sudo apt update
+        sudo apt install meson ninja-build pkg-config gettext sassc \
+          libglib2.0-dev libgdk-pixbuf-2.0-dev libgraphene-1.0-dev libepoxy-dev libfribidi-dev \
+          libfontconfig-dev libfreetype-dev libpixman-1-dev libpng-dev libjpeg-dev libtiff-dev zlib1g-dev \
+          libxkbcommon-dev libx11-dev libxext-dev libxrender-dev libxi-dev libxrandr-dev libxcursor-dev \
+          libxdamage-dev libxfixes-dev libxinerama-dev libxcb1-dev libxcb-render0-dev libxcb-shm0-dev \
+          libexpat1-dev libffi-dev libxml2-dev libappstream-dev libegl-dev
+    - name: Build GTK Bundle
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: installer/linux/build_gtk_bundle.sh
+    - name: Pack GTK Bundle
+      run: tar -czf gtk-bundle.tar.gz gtk-bundle
+    - name: Upload GTK Bundle
+      uses: actions/upload-artifact@v7
+      with:
+        name: gtk-bundle
+        path: gtk-bundle.tar.gz
+        if-no-files-found: error
+
   deb:
+    needs: gtk-bundle
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
@@ -32,8 +76,13 @@ jobs:
       run: |
         sudo apt update
         sudo apt install gettext
+    - uses: actions/download-artifact@v5
+      with:
+        name: gtk-bundle
     - name: Build Package
-      run: installer/linux/build_deb.sh
+      run: |
+        tar -xzf gtk-bundle.tar.gz
+        installer/linux/build_deb.sh
     - name: Upload Package
       uses: actions/upload-artifact@v7
       with:
@@ -42,6 +91,7 @@ jobs:
         if-no-files-found: error
 
   appimage:
+    needs: gtk-bundle
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
@@ -53,8 +103,13 @@ jobs:
       run: |
         sudo apt update
         sudo apt install gettext
+    - uses: actions/download-artifact@v5
+      with:
+        name: gtk-bundle
     - name: Build AppImage
-      run: installer/linux/build_appimage.sh
+      run: |
+        tar -xzf gtk-bundle.tar.gz
+        installer/linux/build_appimage.sh
     - name: Upload AppImage
       uses: actions/upload-artifact@v7
       with:
@@ -63,6 +118,7 @@ jobs:
         if-no-files-found: error
 
   windows:
+    if: inputs.targets != 'linux'
     strategy:
       matrix:
         build: [ { dotnet_rid: win-x64, mingw_folder: "${MINGW_PREFIX}/../clang64", mingw_system: clang64, mingw_repo: clang-x86_64, setup_arch: x64os, runner: windows-2025 }, { dotnet_rid: win-arm64, mingw_folder: "${MINGW_PREFIX}/../clangarm64", mingw_system: clangarm64, mingw_repo: clang-aarch64, setup_arch: arm64, runner: windows-11-arm }]
@@ -103,7 +159,7 @@ jobs:
         if-no-files-found: error
 
   release:
-    if: startsWith( github.ref, 'refs/tags/' )
+    if: ${{ !failure() && !cancelled() && (startsWith(github.ref, 'refs/tags/') || inputs.tag != '') }}
     needs: [flatpak, deb, appimage, windows]
     runs-on: ubuntu-24.04
     permissions:
@@ -115,6 +171,7 @@ jobs:
         merge-multiple: true
     - uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ inputs.tag || github.ref_name }}
         files: |
           artifacts/*.flatpak
           artifacts/*.deb

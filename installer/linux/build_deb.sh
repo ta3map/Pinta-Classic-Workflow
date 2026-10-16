@@ -9,6 +9,7 @@ WORK_DIR="${ROOT_DIR}/release-deb"
 PKG_DIR="${WORK_DIR}/${PACKAGE}"
 OPT_DIR="${PKG_DIR}/opt/${PACKAGE}"
 PUBLISH_DIR="${OPT_DIR}/lib/pinta"
+GTK_DIR="${OPT_DIR}/lib/gtk"
 OUTPUT_FILE="${ROOT_DIR}/${PACKAGE}_${VERSION}_amd64.deb"
 
 rm -rf "${WORK_DIR}" "${OUTPUT_FILE}"
@@ -23,7 +24,20 @@ dotnet publish "${ROOT_DIR}/Pinta/Pinta.csproj" \
 
 rm -f "${PUBLISH_DIR}"/*.pdb
 mv "${PUBLISH_DIR}/icons" "${PUBLISH_DIR}/locale" "${OPT_DIR}/share/"
-ln -s "/opt/${PACKAGE}/lib/pinta/Pinta" "${PKG_DIR}/usr/bin/${PACKAGE}"
+cp -a "${ROOT_DIR}/gtk-bundle/lib" "${GTK_DIR}"
+cp -a "${ROOT_DIR}/gtk-bundle/share/glib-2.0" "${OPT_DIR}/share/"
+
+cat > "${PKG_DIR}/usr/bin/${PACKAGE}" <<EOF
+#!/bin/sh
+export LD_LIBRARY_PATH="/opt/${PACKAGE}/lib/gtk\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+export GSETTINGS_SCHEMA_DIR="/opt/${PACKAGE}/share/glib-2.0/schemas"
+exec "/opt/${PACKAGE}/lib/pinta/Pinta" "\$@"
+EOF
+chmod +x "${PKG_DIR}/usr/bin/${PACKAGE}"
+
+mkdir -p "${WORK_DIR}/debian"
+printf 'Source: %s\n\nPackage: %s\nArchitecture: amd64\n' "${PACKAGE}" "${PACKAGE}" > "${WORK_DIR}/debian/control"
+DEPENDS="$(cd "${WORK_DIR}" && dpkg-shlibdeps -O --ignore-missing-info -l"${GTK_DIR}" "${PUBLISH_DIR}/Pinta" $(find "${OPT_DIR}/lib" -name '*.so*' -type f) | sed 's/^shlibs:Depends=//')"
 
 sed -e 's/^_//' -e "s/^Exec=.*/Exec=${PACKAGE} %F/" -e "s/^TryExec=.*/TryExec=${PACKAGE}/" \
   "${ROOT_DIR}/xdg/${APP_ID}.desktop.in" > "${PKG_DIR}/usr/share/applications/${APP_ID}.desktop"
@@ -37,7 +51,7 @@ Package: ${PACKAGE}
 Version: ${VERSION}
 Architecture: amd64
 Maintainer: ta3map <https://github.com/ta3map/Pinta-Classic-Workflow>
-Depends: libgtk-4-1 (>= 4.18), libadwaita-1-0 (>= 1.7), libicu76 | libicu74 | libicu72
+Depends: ${DEPENDS}, libicu76 | libicu74 | libicu72
 Recommends: webp-pixbuf-loader
 Section: graphics
 Priority: optional

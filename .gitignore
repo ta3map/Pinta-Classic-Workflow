@@ -43,3 +43,5 @@ release-appimage/
 *.deb
 *.flatpak
 .flatpak-builder/
+gtk-build/
+gtk-bundle/

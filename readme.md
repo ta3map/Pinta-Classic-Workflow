@@ -36,14 +36,14 @@ flatpak install --user PintaClassicWorkflow.flatpak
 flatpak run io.github.ta3map.PintaClassicWorkflow
 ```
 
-**Debian / Ubuntu** (Debian 13, Ubuntu 25.04 or newer — requires GTK >= 4.18 and libadwaita >= 1.7):
+**Ubuntu / Linux Mint** (Ubuntu 24.04, Linux Mint 22 or newer — GTK 4.18 and libadwaita 1.7 are bundled):
 
 ```bash
 sudo apt install ./pinta-classic-workflow_<version>_amd64.deb
 pinta-classic-workflow
 ```
 
-**AppImage** (same requirements as the .deb package):
+**AppImage** (Ubuntu 24.04 or a distribution of the same age or newer — GTK 4.18 and libadwaita 1.7 are bundled):
 
 ```bash
 chmod +x PintaClassicWorkflow-*-linux-x64.AppImage

@@ -25,6 +25,8 @@ dotnet publish "${ROOT_DIR}/Pinta/Pinta.csproj" \
   -p:PublishDir="${PUBLISH_DIR}"
 
 cp -R "${PUBLISH_DIR}/." "${APPDIR}/usr/bin/"
+cp -a "${ROOT_DIR}/gtk-bundle/lib" "${APPDIR}/usr/lib"
+cp -a "${ROOT_DIR}/gtk-bundle/share/glib-2.0" "${APPDIR}/usr/share/"
 
 sed -e 's/^_//' -e "s/^Exec=.*/Exec=Pinta %F/" -e "s/^TryExec=.*/TryExec=Pinta/" \
   "${DESKTOP_TEMPLATE}" > "${APPDIR}/usr/share/applications/${APP_ID}.desktop"
@@ -37,6 +39,8 @@ ln -sf "${APP_ID}.svg" "${APPDIR}/.DirIcon"
 cat > "${APPDIR}/AppRun" <<'EOF'
 #!/bin/sh
 HERE="$(dirname "$(readlink -f "$0")")"
+export LD_LIBRARY_PATH="${HERE}/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export GSETTINGS_SCHEMA_DIR="${HERE}/usr/share/glib-2.0/schemas"
 exec "${HERE}/usr/bin/Pinta" "$@"
 EOF
 chmod +x "${APPDIR}/AppRun"
