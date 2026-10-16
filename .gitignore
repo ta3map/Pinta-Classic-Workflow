@@ -45,3 +45,4 @@ release-appimage/
 .flatpak-builder/
 gtk-build/
 gtk-bundle/
+.cursor/rules/build-check.mdc
