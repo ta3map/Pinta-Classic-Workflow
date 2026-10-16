@@ -1,5 +1,16 @@
 # Pinta Classic Workflow
 
+**A Paint.NET alternative for Linux** — free, open source, opens `.pdn` files.
+
+[![Download Flatpak](https://img.shields.io/badge/Download-Flatpak-4A90D9?style=for-the-badge&logo=flatpak&logoColor=white)](https://github.com/ta3map/Pinta-Classic-Workflow/releases/latest/download/PintaClassicWorkflow.flatpak)
+[![Download .deb](https://img.shields.io/badge/Download-.deb-A81D33?style=for-the-badge&logo=debian&logoColor=white)](https://github.com/ta3map/Pinta-Classic-Workflow/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/ta3map/Pinta-Classic-Workflow?style=for-the-badge)](https://github.com/ta3map/Pinta-Classic-Workflow/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](license-mit.txt)
+
+<!-- Demo animation: record a short GIF (floating windows, color wheel, live tolerance) and uncomment:
+![Demo](demo.gif)
+-->
+
 **Pinta Classic Workflow** is a fork of [Pinta](https://github.com/PintaProject/Pinta) whose single goal is to make the look and behavior of the editor as close as possible to [Paint.NET](https://www.getpaint.net/) — the classic menu bar, floating tool windows, colored icons, the color wheel and all the small habits Paint.NET users rely on.
 
 ![Pinta Classic Workflow](screenshot.png)
