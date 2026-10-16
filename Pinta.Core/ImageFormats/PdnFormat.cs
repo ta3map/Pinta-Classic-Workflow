@@ -422,7 +422,7 @@ public sealed class PdnFormat : IImageImporter, IImageExporter
 	{
 		ReadOnlySpan<ColorBgra> pixels = surface.GetReadOnlyPixelData ();
 		byte[] data = new byte[pixels.Length * 4];
-		Span<ColorBgra> straight = MemoryMarshal.Cast<byte, ColorBgra> (data);
+		Span<ColorBgra> straight = MemoryMarshal.Cast<byte, ColorBgra> (data.AsSpan ());
 		for (int i = 0; i < pixels.Length; i++)
 			straight[i] = pixels[i].ToStraightAlpha ();
 
