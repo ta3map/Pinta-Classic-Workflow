@@ -104,6 +104,18 @@
                 <key>CFBundleTypeIconFile</key>
                 <string>pinta.icns</string>
                 <key>CFBundleTypeName</key>
+                <string>PDN</string>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>LSItemContentTypes</key>
+                <array>
+                    <string>net.getpaint.pdn</string>
+                </array>
+            </dict>
+            <dict>
+                <key>CFBundleTypeIconFile</key>
+                <string>pinta.icns</string>
+                <key>CFBundleTypeName</key>
                 <string>WEBP</string>
                 <key>CFBundleTypeRole</key>
                 <string>Editor</string>
@@ -161,6 +173,28 @@
 		    </array>
 		    <key>public.mime-type</key>
 		    <string>image/openraster</string>
+		</dict>
+	    </dict>
+	    <dict>
+	        <key>UTTypeIdentifier</key>
+		<string>net.getpaint.pdn</string>
+		<key>UTTypeDescription</key>
+		<string>Paint.NET Image</string>
+		<key>UTTypeIconFile</key>
+		<string>pinta.icns</string>
+		<key>UTTypeConformsTo</key>
+		<array>
+		    <string>public.image</string>
+		    <string>public.data</string>
+		</array>
+		<key>UTTypeTagSpecification</key>
+		<dict>
+		    <key>public.filename-extension</key>
+		    <array>
+		        <string>pdn</string>
+		    </array>
+		    <key>public.mime-type</key>
+		    <string>image/x-paintnet</string>
 		</dict>
 	    </dict>
 	</array>

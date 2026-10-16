@@ -49,6 +49,10 @@ public abstract class FloodTool : BaseTool
 	protected Label? tolerance_label;
 	protected Scale? tolerance_slider;
 
+	private Document? last_document;
+	private PointI last_point;
+	private BaseHistoryItem? last_item;
+
 	public FloodTool (IServiceProvider services) : base (services) { }
 
 	protected bool IsContinguousMode => ModeDropDown.SelectedItem.GetTagOrDefault (true);
@@ -84,6 +88,26 @@ public abstract class FloodTool : BaseTool
 		if (!currentRegion.ContainsPoint (pos.X, pos.Y) && LimitToSelection)
 			return;
 
+		Fill (document, pos);
+		last_document = document;
+		last_point = pos;
+		last_item = document.History.Current;
+	}
+
+	private void Refill ()
+	{
+		if (last_item is null || last_document?.History.Current != last_item)
+			return;
+
+		last_document.History.Undo ();
+		Fill (last_document, last_point);
+		last_item = last_document.History.Current;
+		last_document.Workspace.Invalidate ();
+	}
+
+	private void Fill (Document document, PointI pos)
+	{
+		var currentRegion = CairoExtensions.CreateRegion (document.GetSelectedBounds (true));
 		var surface = document.Layers.CurrentUserLayer.Surface;
 		var stencilBuffer = new BitMask (surface.Width, surface.Height);
 		var tol = (int) (Tolerance * Tolerance * 256);
@@ -120,7 +144,16 @@ public abstract class FloodTool : BaseTool
 
 	protected Label ModeLabel => mode_label ??= Label.New (string.Format (" {0}: ", Translations.GetString ("Flood Mode")));
 	protected Label ToleranceLabel => tolerance_label ??= Label.New (string.Format (" {0}: ", Translations.GetString ("Tolerance")));
-	protected Scale ToleranceSlider => tolerance_slider ??= GtkExtensions.CreateToolBarSlider (0, 100, 1, Settings.GetSetting (SettingNames.FloodToolFillTolerance (this), 0));
+	protected Scale ToleranceSlider {
+		get {
+			if (tolerance_slider is null) {
+				tolerance_slider = GtkExtensions.CreateToolBarSlider (0, 100, 1, Settings.GetSetting (SettingNames.FloodToolFillTolerance (this), 0));
+				tolerance_slider.OnValueChanged += (_, _) => Refill ();
+			}
+
+			return tolerance_slider;
+		}
+	}
 	protected Separator Separator => mode_sep ??= GtkExtensions.CreateToolBarSeparator ();
 
 	protected ToolBarDropDownButton ModeDropDown {
@@ -132,6 +165,7 @@ public abstract class FloodTool : BaseTool
 				mode_button.AddItem (Translations.GetString ("Global"), Pinta.Resources.Icons.HelpWebsite, false);
 
 				mode_button.SelectedIndex = Settings.GetSetting (SettingNames.FloodToolFillMode (this), 0);
+				mode_button.SelectedItemChanged += (_, _) => Refill ();
 			}
 
 			return mode_button;

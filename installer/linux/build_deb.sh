@@ -12,7 +12,7 @@ PUBLISH_DIR="${OPT_DIR}/lib/pinta"
 OUTPUT_FILE="${ROOT_DIR}/${PACKAGE}_${VERSION}_amd64.deb"
 
 rm -rf "${WORK_DIR}" "${OUTPUT_FILE}"
-mkdir -p "${OPT_DIR}/share" "${PKG_DIR}/usr/bin" "${PKG_DIR}/usr/share/applications" "${PKG_DIR}/usr/share/metainfo" "${PKG_DIR}/usr/share/icons/hicolor/scalable/apps" "${PKG_DIR}/DEBIAN"
+mkdir -p "${OPT_DIR}/share" "${PKG_DIR}/usr/bin" "${PKG_DIR}/usr/share/applications" "${PKG_DIR}/usr/share/metainfo" "${PKG_DIR}/usr/share/mime/packages" "${PKG_DIR}/usr/share/icons/hicolor/scalable/apps" "${PKG_DIR}/DEBIAN"
 
 dotnet publish "${ROOT_DIR}/Pinta/Pinta.csproj" \
   -c Release \
@@ -29,6 +29,7 @@ sed -e 's/^_//' -e "s/^Exec=.*/Exec=${PACKAGE} %F/" -e "s/^TryExec=.*/TryExec=${
   "${ROOT_DIR}/xdg/${APP_ID}.desktop.in" > "${PKG_DIR}/usr/share/applications/${APP_ID}.desktop"
 sed -e 's/<_/</g' -e 's/<\/_/<\//g' \
   "${ROOT_DIR}/xdg/${APP_ID}.metainfo.xml.in" > "${PKG_DIR}/usr/share/metainfo/${APP_ID}.metainfo.xml"
+cp "${ROOT_DIR}/xdg/${APP_ID}.xml" "${PKG_DIR}/usr/share/mime/packages/"
 cp "${ROOT_DIR}/Pinta.Resources/icons/hicolor/scalable/apps/${APP_ID}.svg" "${PKG_DIR}/usr/share/icons/hicolor/scalable/apps/"
 
 cat > "${PKG_DIR}/DEBIAN/control" <<EOF

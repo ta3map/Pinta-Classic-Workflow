@@ -8,11 +8,15 @@ appdata_in_files = io.github.ta3map.PintaClassicWorkflow.metainfo.xml.in
 appdata_DATA = $(appdata_in_files:.xml.in=.xml)
 @INTLTOOL_XML_RULE@
 
+mimedir = $(datadir)/mime/packages
+mime_DATA = io.github.ta3map.PintaClassicWorkflow.xml
+
 man_MANS = pinta.1
 
 EXTRA_DIST =                                   \
        $(desktop_in_files)                     \
        $(appdata_in_files)                     \
+       $(mime_DATA)                            \
        $(man_MANS)
 
 CLEANFILES = $(desktop_DATA) $(appdata_DATA)
