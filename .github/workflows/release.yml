@@ -41,9 +41,66 @@ jobs:
         path: pinta-classic-workflow_*_amd64.deb
         if-no-files-found: error
 
+  appimage:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 8.0.x
+    - name: Build AppImage
+      run: installer/linux/build_appimage.sh
+    - name: Upload AppImage
+      uses: actions/upload-artifact@v7
+      with:
+        name: PintaClassicWorkflow.AppImage
+        path: PintaClassicWorkflow-*-linux-x64.AppImage
+        if-no-files-found: error
+
+  windows:
+    strategy:
+      matrix:
+        build: [ { dotnet_rid: win-x64, mingw_folder: "${MINGW_PREFIX}/../clang64", mingw_system: clang64, mingw_repo: clang-x86_64, setup_arch: x64os, runner: windows-2025 }, { dotnet_rid: win-arm64, mingw_folder: "${MINGW_PREFIX}/../clangarm64", mingw_system: clangarm64, mingw_repo: clang-aarch64, setup_arch: arm64, runner: windows-11-arm }]
+
+    name: windows (${{matrix.build.dotnet_rid}})
+
+    runs-on: ${{matrix.build.runner}}
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 8.0.x
+    - name: Install dependencies
+      uses: msys2/setup-msys2@v2
+      with:
+        path-type: inherit
+        update: true
+        msystem: ${{matrix.build.mingw_system}}
+        install: mingw-w64-${{matrix.build.mingw_repo}}-libadwaita mingw-w64-${{matrix.build.mingw_repo}}-webp-pixbuf-loader
+    - name: Build Installer
+      run: |
+        choco install innosetup -y -v
+        dotnet publish Pinta/Pinta.csproj -p:BuildTranslations=true -p:MinGWFolder=${{matrix.build.mingw_folder}} -c Release -r ${{matrix.build.dotnet_rid}} --self-contained true -p:PublishDir=../release/bin
+        cp -r release/bin/icons release/bin/locale release/share/
+        rm -rf release/bin/icons release/bin/locale
+        cp installer/macos/hicolor.index.theme release/share/icons/hicolor/index.theme
+        iscc -DProductArch="${{matrix.build.setup_arch}}" -F"PintaClassicWorkflow-${{matrix.build.dotnet_rid}}-Setup" installer/windows/installer.iss
+    - name: Upload Installer
+      uses: actions/upload-artifact@v7
+      with:
+        name: PintaClassicWorkflow-${{matrix.build.dotnet_rid}}.exe
+        path: installer/windows/*.exe
+        if-no-files-found: error
+
   release:
     if: startsWith( github.ref, 'refs/tags/' )
-    needs: [flatpak, deb]
+    needs: [flatpak, deb, appimage, windows]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -57,3 +114,5 @@ jobs:
         files: |
           artifacts/*.flatpak
           artifacts/*.deb
+          artifacts/*.AppImage
+          artifacts/*.exe

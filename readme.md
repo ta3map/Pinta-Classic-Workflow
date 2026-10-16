@@ -40,6 +40,15 @@ sudo apt install ./pinta-classic-workflow_<version>_amd64.deb
 pinta-classic-workflow
 ```
 
+**AppImage** (same requirements as the .deb package):
+
+```bash
+chmod +x PintaClassicWorkflow-*-linux-x64.AppImage
+./PintaClassicWorkflow-*-linux-x64.AppImage
+```
+
+**Windows**: download and run `PintaClassicWorkflow-win-x64-Setup.exe` (or `win-arm64` for ARM devices). The installer is not signed, so Windows SmartScreen will show a warning — choose *More info* → *Run anyway*.
+
 ## Differences from the latest Pinta
 
 **Window layout**

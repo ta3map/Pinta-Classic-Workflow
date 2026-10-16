@@ -72,8 +72,6 @@ jobs:
       run: make install
     - name: Build Installer
       working-directory: ${{env.BUILD_DIR}}
-      env:
-        VERSION: ${{ env.PINTA_VERSION }}
       run: |
         chmod +x installer/linux/build_appimage.sh
         installer/linux/build_appimage.sh
